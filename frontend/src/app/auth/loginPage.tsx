@@ -1,5 +1,7 @@
+"use client";
 import React, { useState } from "react";
 import "./loginPage.css";
+import OtpModal from "./otpPopUp";
 
 type Mode =
   | "login"
@@ -24,7 +26,8 @@ const loginPage = () => {
     setShowOtpModal(true);
   };
 
-  const handleOtpVerify = () => {
+  const handleOtpVerify = ( otp: string ) => {
+    // OTP verification backend wiring to be done here
     setShowOtpModal(false);
 
     if (otpPurpose === "register") {
@@ -118,6 +121,19 @@ const loginPage = () => {
 
             <button className="primary-btn">Register</button>
           </>
+        )}
+
+        {/* OTP PopUp */}
+        {showOtpModal && (
+          <OtpModal
+            message={
+              otpPurpose === "register"
+                ? "Enter the OTP sent to your IITK email."
+                : "Enter the OTP to reset your password."
+            }
+            onVerify={handleOtpVerify}
+            onClose={() => setShowOtpModal(false)}
+          />
         )}
       </div>
 
