@@ -1,3 +1,4 @@
+/* OTP PopUp */
 .otp-backdrop {
   position: fixed;
   inset: 0;
@@ -6,46 +7,45 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
-  z-index: 2147483647; /* absolute top */
+  z-index: 9999;
   font-family: var(--font-montserrat);
 }
 
 .otp-card {
-  width: 420px;
-  padding: 40px;
-  border-radius: 16px;
+  width: clamp(15rem, 25vw, 20rem);
+  padding: clamp(20px, 2vw, 40px);
+  border-radius: clamp(12px, 2vw, 16px);
   background: white;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
   text-align: center;
 }
 
 .otp-heading {
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: clamp(0.25rem, 2vw, 0.5rem);
 }
 
 .otp-message {
-  font-size: 0.95rem;
+  font-size: clamp(0.8rem, 3vw, 0.95rem);
   opacity: 0.8;
-  margin-bottom: 28px;
+  margin-bottom: clamp(1rem, 3vw, 2rem);
 }
 
 .otp-card label {
   display: block;
-  font-size: 1.1rem;
+  font-size: clamp(0.85rem, 3vw, 1.1rem);
   font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: clamp(0.25rem, 2vw, 0.5rem);
   text-align: left;
 }
 
 .otp-card input {
   width: 100%;
-  padding: 14px 16px;
-  border-radius: 14px;
+  padding: clamp(9px, 2vw, 14px) clamp(10px, 2vw, 16px);
+  border-radius: clamp(8px, 2vw, 14px);
   border: none;
   background: #f1f2f5;
-  margin-bottom: 24px;
-  font-size: 1rem;
+  margin-bottom: clamp(12px, 3vw, 24px);
+  font-size: clamp(0.8rem, 3vw, 1rem);
 }

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import "./otpPopUp.css";
 
@@ -16,6 +16,14 @@ const OtpModal = ({ message, onVerify, onClose }: OtpModalProps) => {
     if(otp.length !== 6) return;
     onVerify(otp);
   }
+  useEffect(() => {
+    const originalStyle = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
 
   return ReactDOM.createPortal(
     <div className="otp-backdrop">
