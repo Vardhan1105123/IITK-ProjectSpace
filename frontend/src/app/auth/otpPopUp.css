@@ -12,7 +12,7 @@
 }
 
 .otp-card {
-  width: clamp(15rem, 25vw, 20rem);
+  width: clamp(15rem, 25vw, 25rem);
   padding: clamp(20px, 2vw, 40px);
   border-radius: clamp(12px, 2vw, 16px);
   background: white;

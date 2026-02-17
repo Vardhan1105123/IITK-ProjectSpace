@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import "./loginPage.css";
-import OtpModal from "./otpPopUp";
+import OtpPopUp from "./otpPopUp";
 
 type Mode =
   | "login"
@@ -123,13 +123,53 @@ const loginPage = () => {
           </>
         )}
 
+        {/* Forgot Password #1 */}
+        {mode === "forgot-email" && (
+          <>
+            <h1 className = "section-title">Verify Email</h1>
+            <p className = "instruction-text">Enter your IITK email to proceed.</p>
+            
+            <label>IITK Email ID</label>
+            <input type="email" placeholder="username@iitk.ac.in" />
+
+            <button className = "primary-btn" onClick={ () => openOtp("forgot")}>
+              Next
+            </button>
+            
+            <p className="link" onClick={() => setMode("login")}>
+              Go Back
+            </p>
+          </>
+        )}
+
+        {/* Forgot PAssword #2 */}
+        {mode === "forgot-reset" && (
+          <>
+            <h3 className="section-title">Set New Password</h3>
+            
+            <label>New Password</label>
+            <input type="password" placeholder="Enter new password" />
+
+            <label>Confirm Password</label>
+            <input type="password" placeholder="Confirm new password" />
+
+            <button className="primary-btn" onClick={() => alert("Password Changed!")}>
+              Update Password
+            </button>
+            
+            <p className="link" onClick={() => setMode("forgot-email")}>
+              Go Back
+            </p>
+          </>
+        )}
+
         {/* OTP PopUp */}
         {showOtpModal && (
-          <OtpModal
+          <OtpPopUp
             message={
               otpPurpose === "register"
-                ? "Enter the OTP sent to your IITK email."
-                : "Enter the OTP to reset your password."
+                ? "An OTP has been sent to your entered email address."
+                : "Enter the OTP sent to your registered mail to reset your password."
             }
             onVerify={handleOtpVerify}
             onClose={() => setShowOtpModal(false)}

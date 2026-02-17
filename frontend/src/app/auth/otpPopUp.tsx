@@ -1,15 +1,15 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import ReactDOM from "react-dom";
+import { createPortal } from "react-dom";
 import "./otpPopUp.css";
 
-type OtpModalProps = {
+type otpPopUpProps = {
   message: string;
   onVerify: (otp: string) => void;
   onClose: () => void;
 };
 
-const OtpModal = ({ message, onVerify, onClose }: OtpModalProps) => {
+const otpPopUp = ({ message, onVerify, onClose }: otpPopUpProps) => {
   const [otp, setOtp] = useState("");
 
   const handleVerifyClick = () => {
@@ -25,7 +25,7 @@ const OtpModal = ({ message, onVerify, onClose }: OtpModalProps) => {
     };
   }, []);
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div className="otp-backdrop">
       <div className="otp-card">
         <h2 className="otp-heading">OTP Verification</h2>
@@ -48,4 +48,4 @@ const OtpModal = ({ message, onVerify, onClose }: OtpModalProps) => {
   );
 };
 
-export default OtpModal;
+export default otpPopUp;
