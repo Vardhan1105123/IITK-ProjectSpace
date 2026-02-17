@@ -1,7 +1,7 @@
 .auth-container {
   position: relative;
-  min-height: 100vh;
-  padding: 5vh 4vw 5vh 1%;
+  height: 100vh;
+  padding: 20px;
   font-family: var(--font-montserrat);
   font-style: normal;
   overflow: hidden;
@@ -32,13 +32,13 @@
 /* FLOATING CARD */
 .auth-card {
   width: 40%;
-  height: 90vh;
+  height: 100%;
   max-width: 960px;
   min-width: 320px;
   padding: clamp(2rem, 4vw, 4rem);
   border-radius: 16px;
   background: white;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0px 10px rgba(0, 0, 0, 0.15);
   overflow-y: auto;
   z-index: 3;
   transition: 0.3s ease;
@@ -61,7 +61,7 @@
 
 .section-title {
   text-align: center;
-  font-size: clamp(1rem, 3vw, 1.5rem);
+  font-size: clamp(1rem, 3vw, 1.3rem);
   margin-top: clamp(-1.5rem, 1vw, -2rem);
   margin-bottom: clamp(8px, 3vw, 16px);
   font-weight: 500;
@@ -107,18 +107,19 @@
 /* TOGGLE */
 .toggle {
   display: flex;
+  width: 90%;
   background: #f1f2f5;
   border-radius: 14px;
   padding: 6px;
-  margin-bottom: clamp(2rem, 4vw, 4rem);
-  font-size: clamp(0.7rem, 3vw, 1rem);
+  margin: 0 auto 30px auto;
+  font-size: clamp(0.7rem, 3vw, 1.1rem);
 }
 
 .toggle button {
   flex: 1;
   border: none;
   background: transparent;
-  padding: 8px 0;
+  padding: 5px 0;
   border-radius: 12px;
   cursor: pointer;
   font-weight: 500;
@@ -128,82 +129,89 @@
 .toggle .active {
   background: white;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  cursor: auto;
 }
 
 .instruction-text {
   text-align: center;
   font-size: clamp(0.8rem, 2.5vw, 0.95rem);
   color: #666;
-  margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+  margin: 10px auto 60px auto;
   line-height: 1.5;
   padding: 0 10px;
 }
 
 /* LABELS */
 label {
-  font-size: clamp(0.9rem, 3vw, 1.25rem);
+  font-size: clamp(0.9rem, 3vw, 1rem);
   font-weight: 500;
-  margin-bottom: 6px;
+  margin: 0 auto 6px auto;
   display: block;
+  width: 90%
 }
 
 /* INPUTS */
 input {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: clamp(7px, 2vw, 14px);
+  width: 90%;
+  padding: 10px 15px;
+  border-radius: clamp(7px, 2vw, 10px);
   border: none;
   background: #f1f2f5;
-  margin-bottom: clamp(9px, 3vw, 18px);
-  font-size: clamp(0.75rem, 3vw, 1rem);
+  box-sizing: border-box;
+  display: block;
+  margin: 0 auto 10px auto;
+  font-size: clamp(0.75rem, 3vw, 0.95rem);
   transition: 0.2s ease;
+  margin-left: auto;
 }
 
 
 /* BUTTONS */
 .primary-btn {
-  width: 100%;
-  padding: 14px;
-  border-radius: 14px;
-  border: none;
+  width: 60%;
+  padding: 8px;
+  border-radius: 10px;
   background: #001d39;
   color: white;
-  margin-top: 10px;
-  margin-bottom: 18px;
+  display: block;
+  margin: 60px auto 20px auto;
   cursor: pointer;
   font-weight: 500;
-  box-shadow: 0 4px 8px rgba(0, 29, 57, 0.25);
+  box-shadow: 0 0px 8px rgba(0, 29, 57, 0.25);
   transition: 0.2s ease;
 }
 
 .primary-btn:hover{
-  transform: translateY(-1px);
-  box-shadow: 0 10px 26px rgba(0, 29, 57, 0.3);
+  transform: translateY(-0.5px);
+  box-shadow: 0 5px 10px rgba(0, 29, 57, 0.3);
+  margin: 60px auto 20px auto;
 }
 
 .google-btn {
-  width: 100%;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid #f1f2f5;
+  width: 60%;
+  display: block;
+  padding: 8px;
+  border-radius: 10px;
   background: white;
-  margin-bottom: 14px;
+  border: #f1f2f5;
+  margin: 20px auto 20px auto;
   cursor: pointer;
   font-weight: 500;
-  box-shadow: 0 4px 8px rgba(0, 29, 57, 0.25);
+  box-shadow: 0 0px 8px rgba(0, 29, 57, 0.25);
   transition: 0.2s ease;
 }
 
 .google-btn:hover {
   background: #f7f8fa;
   transform: translateY(-1px);
-  box-shadow: 0 10px 16px rgba(0, 29, 57, 0.3);
+  box-shadow: 0 5px 10px rgba(0, 29, 57, 0.3);
 }
 
 .link {
-  font-size: clamp(0.7rem, 3vw, 1rem);
+  font-size: clamp(0.7rem, 3vw, 0.8rem);
   text-align: center;
   cursor: pointer;
+  color: #0000009f;
 }
 
 @media (max-width: 1100px) {

@@ -52,20 +52,20 @@ class UserUpdate(BaseModel):
 
 class UserPublic(UserBase):
     id: uuid.UUID
-    
+
     secondary_email: Optional[EmailStr] = None
     designation: Designation
     degree: Degree
     department: Department
-    
+
     bio: str = ""
     profile_picture_url: Optional[str] = None
-    
+
     github: Optional[HttpUrl] = None
     linkedin: Optional[HttpUrl] = None
     other_link1: Optional[HttpUrl] = None
     other_link2: Optional[HttpUrl] = None
-    
+
     skills: List[str] = []
     domains: List[str] = []
 
