@@ -1,0 +1,138 @@
+:root {
+  --color-darkest:   #001D39;
+  --color-dark:      #0A4174;
+  --color-mid:       #49769F;
+  --color-teal:      #4E8EA2;
+  --color-slate:     #6EA2B3;
+  --color-sky:       #7BBDE8;
+  --color-lightest:  #BDD8E9;
+
+  --sidebar-width: 60px;
+}
+
+/* SIDEBAR */
+.sidebar {
+  position: relative;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 200;
+
+  width: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+
+  background-color: var(--color-darkest);
+  border-right: 1px solid rgba(123, 189, 232, 0.1);
+}
+
+/* Brand / Logo */
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+/* Nav list */
+.sidebar__nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 0 8px;
+}
+
+/* Individual nav button */
+.sidebar__nav-item {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+
+  transition: background 0.18s, color 0.18s, transform 0.15s;
+}
+
+.sidebar__nav-item:hover {
+  background-color: rgba(123, 189, 232, 0.1);
+  color: var(--color-sky);
+  transform: translateX(2px);
+}
+
+.sidebar__nav-item--active {
+  background-color: rgba(78, 142, 162, 0.2);
+  color: var(--color-sky);
+}
+
+/* Active left indicator bar */
+.sidebar__nav-item--active::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 24px;
+  border-radius: 0 3px 3px 0;
+  background-color: var(--color-sky);
+}
+
+/* Icon wrapper */
+.sidebar__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+/* Notification badge */
+.sidebar__badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+
+  background-color: var(--color-teal);
+  border-radius: 999px;
+  border: 2px solid var(--color-darkest);
+
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 12px;
+  text-align: center;
+}
+
+/* Bottom section (logout) */
+.sidebar__bottom {
+  padding: 0 8px;
+  margin-top: 8px;
+}
+
+.sidebar__logout {
+  color: white;
+}
+
+.sidebar__logout:hover {
+  color: #e87b7b;
+  background-color: rgba(232, 123, 123, 0.1);
+}
