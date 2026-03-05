@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import "./loginPage.css";
 import OtpPopUp from "./otpPopUp";
+import AlertPopUp from "./AlertPopUp";
 import {
   loginUser,
   requestRegistrationOTP,
@@ -27,25 +28,46 @@ const loginPage = () => {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpPurpose, setOtpPurpose] = useState<"register" | "reset" | null>(null);
 
+  const [alertConfig, setAlertConfig] = useState<{show: boolean, message: string, type: "success" | "error"}>({
+    show: false,
+    message: "",
+    type: "success"
+  });
+
   const showTabs = mode === "login" || mode === "register-step1" || mode === "register-password";
+  
+    const triggerAlert = (message: string, type: "success" | "error") => {
+      setAlertConfig({ show: true, message, type });
+    };
+
+  const handleModeSwitch = (newMode: Mode) => {
+    setMode(newMode);
+    setEmail("");
+    setFullname("");
+    setPassword("");
+    setConfirmPassword("");
+    setVerifiedOtp("");
+    setShowOtpModal(false);
+    setAlertConfig({ ...alertConfig, show: false });
+  };
 
   const handleLogin = async() => {
     try {
       const res = await loginUser(email, password);
       if (res.access_token) {
         localStorage.setItem("access_token", res.access_token);
-        alert("Login successful!");
+        triggerAlert("Login successful!", "success");
         // window.location.href = '/dashboard';
       }
     } catch (err) {
-      alert("Invalid email or password");
+      triggerAlert("Invalid email or password", "error");
     }
   };
 
   const openOtp = async (purpose: "register" | "reset") => {
     try {
-      if (!email) return alert("Please enter your email.");
-      if (purpose === "register" && !fullname) return alert("Please enter your name.");
+      if (!email) return triggerAlert("Please enter your email.", "");
+      if (purpose === "register" && !fullname) return triggerAlert("Please enter your name.", "error");
 
       if (purpose === "register") {
         await requestRegistrationOTP(email, fullname);
@@ -56,7 +78,7 @@ const loginPage = () => {
       setOtpPurpose(purpose);
       setShowOtpModal(true);
     } catch (err: any) {
-      alert(err.message || "Failed to send OTP. Ensure it is an @iitk.ac.in email.");
+      triggerAlert(err.message || "Failed to send OTP. Ensure it is an @iitk.ac.in email.", "error");
     }
   };
 
@@ -72,31 +94,31 @@ const loginPage = () => {
         setMode("forgot-reset");
       }
     } catch (err) {
-      alert("Invalid or expired OTP");
+      triggerAlert("Invalid or expired OTP", "error");
     }
   };
 
   const handleRegister = async () => {
-    if (password !== confirmPassword) return alert("Passwords do not match!");
+    if (password !== confirmPassword) return triggerAlert("Passwords do not match!", "error");
     try {
       await finalizeRegistration(email, verifiedOtp, password);
-      alert("Account created successfully!");
-      setMode("login");
+      triggerAlert("Account created successfully!", "success");
+      handleModeSwitch("login");
       setPassword(""); setConfirmPassword("");
     } catch (err) {
-      alert("Registration failed");
+      triggerAlert("Registration failed", "error");
     }
   };
 
   const handlePasswordReset = async () => {
-    if (password !== confirmPassword) return alert("Passwords do not match!");
+    if (password !== confirmPassword) return triggerAlert("Passwords do not match!", "error");
     try {
       await finalizePasswordReset(email, verifiedOtp, password);
-      alert("Password updated successfully!");
-      setMode("login");
+      triggerAlert("Password updated successfully!", "success");
+      handleModeSwitch("login");
       setPassword(""); setConfirmPassword("");
     } catch (err) {
-      alert("Failed to update password.");
+      triggerAlert("Failed to update password.", "error");
     }
   };
 
@@ -110,8 +132,8 @@ const loginPage = () => {
 
         {showTabs && (
           <div className="toggle">
-            <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Login</button>
-            <button className={mode.startsWith("register") ? "active" : ""} onClick={() => setMode("register-step1")}> Register </button>
+            <button className={mode === "login" ? "active" : ""} onClick={() => handleModeSwitch("login")}>Login</button>
+            <button className={mode.startsWith("register") ? "active" : ""} onClick={() => handleModeSwitch("register-step1")}> Register </button>
           </div>
         )}
 
@@ -127,7 +149,7 @@ const loginPage = () => {
             <button className="primary-btn" onClick={handleLogin}>Login</button>
             <button className="google-btn">Sign in with Google</button>
 
-            <p className="link" onClick={() => {setMode("forgot-email"); setEmail(""); setPassword("");}}> Forgot Password? </p>
+            <p className="link" onClick={() => {handleModeSwitch("forgot-email"); setEmail(""); setPassword("");}}> Forgot Password? </p>
           </>
         )}
 
@@ -174,7 +196,7 @@ const loginPage = () => {
 
             <button className = "primary-btn" onClick={() => openOtp("reset")}> Next </button>
             
-            <p className="link" onClick={() => setMode("login")}> Go Back </p>
+            <p className="link" onClick={() => handleModeSwitch("login")}> Go Back </p>
           </>
         )}
 
@@ -191,7 +213,7 @@ const loginPage = () => {
 
             <button className="primary-btn" onClick={handlePasswordReset}>Update Password</button>
             
-            <p className="link" onClick={() => setMode("login")}> Back to Login </p>
+            <p className="link" onClick={() => handleModeSwitch("login")}> Back to Login </p>
           </>
         )}
 
@@ -205,6 +227,15 @@ const loginPage = () => {
             }
             onVerify={handleOtpVerify}
             onClose={() => setShowOtpModal(false)}
+          />
+        )}
+
+        {/* NEW: Custom Alert PopUp */}
+        {alertConfig.show && (
+          <AlertPopUp 
+            message={alertConfig.message} 
+            type={alertConfig.type} 
+            onClose={() => setAlertConfig({ ...alertConfig, show: false })} 
           />
         )}
       </div>
