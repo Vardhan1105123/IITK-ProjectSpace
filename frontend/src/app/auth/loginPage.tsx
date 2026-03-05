@@ -2,85 +2,103 @@
 import React, { useState } from "react";
 import "./loginPage.css";
 import OtpPopUp from "./otpPopUp";
-import { requestOTP,checkOTP, verifyOTP, registerUser } from "../../lib/authApi";
+import {
+  loginUser,
+  requestRegistrationOTP,
+  requestResetOTP,
+  checkOTP,
+  finalizeRegistration,
+  finalizePasswordReset,
+} from "../../lib/authApi";
+import { Playwrite_DK_Uloopet_Guides } from "next/font/google";
 
 
 
-type Mode =
-  | "login"
-  | "register-step1"
-  | "register-password"
-  | "forgot-email"
-  | "forgot-reset";
+type Mode = "login" | "register-step1" | "register-password" | "forgot-email" | "forgot-reset";
 
 const loginPage = () => {
   const [fullname, setFullname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [verifiedOtp, setVerifiedOtp] = useState("");
+
   const [mode, setMode] = useState<Mode>("login");
   const [showOtpModal, setShowOtpModal] = useState(false);
-  const [otpPurpose, setOtpPurpose] =
-    useState<"register" | "forgot" | null>(null);
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const showTabs =
-    mode === "login" ||
-    mode === "register-step1" ||
-    mode === "register-password";
+  const [otpPurpose, setOtpPurpose] = useState<"register" | "reset" | null>(null);
 
-  const openOtp = async (purpose: "register" | "forgot") => {
-  try {
-    if (!email || !fullname) {
-      alert("Please enter email and name first");
-      return;
+  const showTabs = mode === "login" || mode === "register-step1" || mode === "register-password";
+
+  const handleLogin = async() => {
+    try {
+      const res = await loginUser(email, password);
+      if (res.access_token) {
+        localStorage.setItem("access_token", res.access_token);
+        alert("Login successful!");
+        // window.location.href = '/dashboard';
+      }
+    } catch (err) {
+      alert("Invalid email or password");
     }
+  };
 
-    const res = await requestOTP(email, fullname);
+  const openOtp = async (purpose: "register" | "reset") => {
+    try {
+      if (!email) return alert("Please enter your email.");
+      if (purpose === "register" && !fullname) return alert("Please enter your name.");
 
-    if (res.message) {
+      if (purpose === "register") {
+        await requestRegistrationOTP(email, fullname);
+      } else {
+        await requestResetOTP(email);
+      }
+
       setOtpPurpose(purpose);
       setShowOtpModal(true);
+    } catch (err: any) {
+      alert(err.message || "Failed to send OTP. Ensure it is an @iitk.ac.in email.");
     }
-
-  } catch (err) {
-    console.error(err);
-    alert("Failed to send OTP");
-  }
-};
+  };
 
   const handleOtpVerify = async (otp: string) => {
-  try {
-    const res = await checkOTP(email, otp);
-
-    if (res.message === "OTP is valid.") {
+    try {
+      await checkOTP(email, otp, otpPurpose); 
       setShowOtpModal(false);
-      setVerifiedOtp(otp);
+      setVerifiedOtp(otp); 
+      
       if (otpPurpose === "register") {
         setMode("register-password");
       } else {
         setMode("forgot-reset");
       }
+    } catch (err) {
+      alert("Invalid or expired OTP");
     }
+  };
 
-  } catch (err) {
-    alert("Invalid or expired OTP");
-  }
-};
-const handleRegister = async () => {
-  try {
-    const res = await registerUser(email, fullname, password);
-
-    if (res) {
-      await verifyOTP(email, verifiedOtp);
-
+  const handleRegister = async () => {
+    if (password !== confirmPassword) return alert("Passwords do not match!");
+    try {
+      await finalizeRegistration(email, verifiedOtp, password);
       alert("Account created successfully!");
       setMode("login");
+      setPassword(""); setConfirmPassword("");
+    } catch (err) {
+      alert("Registration failed");
     }
-  } catch (err) {
-    console.error(err);
-    alert("Registration failed");
-  }
-};
+  };
+
+  const handlePasswordReset = async () => {
+    if (password !== confirmPassword) return alert("Passwords do not match!");
+    try {
+      await finalizePasswordReset(email, verifiedOtp, password);
+      alert("Password updated successfully!");
+      setMode("login");
+      setPassword(""); setConfirmPassword("");
+    } catch (err) {
+      alert("Failed to update password.");
+    }
+  };
 
   return (
     <div className="auth-container">
@@ -92,18 +110,8 @@ const handleRegister = async () => {
 
         {showTabs && (
           <div className="toggle">
-            <button
-              className={mode === "login" ? "active" : ""}
-              onClick={() => setMode("login")}
-            >
-              Login
-            </button>
-            <button
-              className={mode.startsWith("register") ? "active" : ""}
-              onClick={() => setMode("register-step1")}
-            >
-              Register
-            </button>
+            <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Login</button>
+            <button className={mode.startsWith("register") ? "active" : ""} onClick={() => setMode("register-step1")}> Register </button>
           </div>
         )}
 
@@ -111,23 +119,15 @@ const handleRegister = async () => {
         {mode === "login" && (
           <>
             <label>Username / IITK Email</label>
-            <input placeholder="Enter your username / IITK email" />
-
+            <input placeholder="Enter your username / IITK email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            
             <label>Password</label>
-            <input type="password" placeholder="Enter your password" />
+            <input type="password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} />
 
-            <button className="primary-btn">Login</button>
+            <button className="primary-btn" onClick={handleLogin}>Login</button>
+            <button className="google-btn">Sign in with Google</button>
 
-            <button className="google-btn">
-              Sign in with Google
-            </button>
-
-            <p
-              className="link"
-              onClick={() => setMode("forgot-email")}
-            >
-              Forgot Password?
-            </p>
+            <p className="link" onClick={() => {setMode("forgot-email"); setEmail(""); setPassword("");}}> Forgot Password? </p>
           </>
         )}
 
@@ -138,14 +138,9 @@ const handleRegister = async () => {
             <input placeholder="Enter your full name" value={fullname} onChange={(e) => setFullname(e.target.value)}/>
 
             <label>IITK Email ID</label>
-            <input placeholder="Enter your IITK Email ID" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input type="email" placeholder="username@iitk.ac.in" value={email} onChange={(e) => setEmail(e.target.value)}/>
 
-            <button
-              className="primary-btn"
-              onClick={() => openOtp("register")}
-            >
-              Next
-            </button>
+            <button className="primary-btn" onClick={() => openOtp("register")}> Next </button>
           </>
         )}
 
@@ -163,9 +158,8 @@ const handleRegister = async () => {
 
             <label>Confirm Password</label>
             <input  type="password" placeholder="Confirm your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}/>
-            <button className="primary-btn" onClick={handleRegister}>
-  Register
-</button>
+            
+            <button className="primary-btn" onClick={handleRegister}> Register </button>
           </>
         )}
 
@@ -176,15 +170,11 @@ const handleRegister = async () => {
             <p className = "instruction-text">Enter your IITK email to proceed.</p>
             
             <label>IITK Email ID</label>
-            <input type="email" placeholder="username@iitk.ac.in" />
+            <input type="email" placeholder="username@iitk.ac.in" value={email} onChange={(e) => setEmail(e.target.value)} />
 
-            <button className = "primary-btn" onClick={ () => openOtp("forgot")}>
-              Next
-            </button>
+            <button className = "primary-btn" onClick={() => openOtp("reset")}> Next </button>
             
-            <p className="link" onClick={() => setMode("login")}>
-              Go Back
-            </p>
+            <p className="link" onClick={() => setMode("login")}> Go Back </p>
           </>
         )}
 
@@ -194,18 +184,14 @@ const handleRegister = async () => {
             <h3 className="section-title">Set New Password</h3>
             
             <label>New Password</label>
-            <input type="password" placeholder="Enter new password" />
+            <input type="password" placeholder="Enter new password" value={password} onChange={(e) => setPassword(e.target.value)} />
 
             <label>Confirm Password</label>
-            <input type="password" placeholder="Confirm new password" />
+            <input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
 
-            <button className="primary-btn" onClick={() => alert("Password Changed!")}>
-              Update Password
-            </button>
+            <button className="primary-btn" onClick={handlePasswordReset}>Update Password</button>
             
-            <p className="link" onClick={() => setMode("login")}>
-              Back to Login
-            </p>
+            <p className="link" onClick={() => setMode("login")}> Back to Login </p>
           </>
         )}
 

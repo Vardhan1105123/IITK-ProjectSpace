@@ -67,7 +67,7 @@ async def request_otp(request_data: UserBase, db: Session = Depends(get_session)
 
 
 # Verifying OTP Endpoint
-@router.post("/verify-otp", status_code=status.HTTP_200_OK)
+@router.post("/verify-otp", status_code=status.HTTP_201_CREATED)
 def verify_otp(verify_data: OTPVerify, db: Session = Depends(get_session)):
 
     otp_record = db.exec(
@@ -76,11 +76,24 @@ def verify_otp(verify_data: OTPVerify, db: Session = Depends(get_session)):
         .where(OTPVerification.purpose == "register")
     ).first()
 
-    if otp_record:
-        db.delete(otp_record)
-        db.commit()
+    if not otp_record:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No verification request found.")
+        
+    if otp_record.otp_code != verify_data.otp_code:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code.")
+    
+    new_user_data = UserCreate(
+        fullname=otp_record.full_name,
+        iitk_email=otp_record.email,
+        password=verify_data.password
+    )
+    
+    create_user(session=db, user_create=new_user_data)
 
-    return {"message": "OTP removed"}
+    db.delete(otp_record)
+    db.commit()
+
+    return {"message": "Account created successfully!"}
 
 @router.post("/check-otp", status_code=status.HTTP_200_OK)
 def check_otp(check_data: OTPCheck, db: Session = Depends(get_session)):
@@ -111,26 +124,6 @@ def check_otp(check_data: OTPCheck, db: Session = Depends(get_session)):
 
     return {"message": "OTP is valid."}
 
-@router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
-def register_user(user_data: UserCreate, db: Session = Depends(get_session)):
-    existing_user = get_user_by_email(session=db, email=user_data.iitk_email)
-
-    if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="Email already registered."
-        )
-    created_user = create_user(session=db, user_create=user_data)
-    otp_record = db.exec(
-        select(OTPVerification)
-        .where(OTPVerification.email == user_data.iitk_email)
-        .where(OTPVerification.purpose == "register")
-    ).first()
-
-    if otp_record:
-        db.delete(otp_record)
-        db.commit()
-    return created_user
 # Login Endpoint
 @router.post("/login")
 def login_user(user_credentials: UserLogin, db: Session = Depends(get_session)):
