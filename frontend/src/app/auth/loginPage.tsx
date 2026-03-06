@@ -34,6 +34,8 @@ const loginPage = () => {
     type: "success"
   });
 
+  const [isLoading, setIsLoading] = useState(false)
+
   const showTabs = mode === "login" || mode === "register-step1" || mode === "register-password";
   
     const triggerAlert = (message: string, type: "success" | "error") => {
@@ -42,6 +44,7 @@ const loginPage = () => {
 
   const handleModeSwitch = (newMode: Mode) => {
     setMode(newMode);
+    setIsLoading(false);
     setEmail("");
     setFullname("");
     setPassword("");
@@ -52,6 +55,7 @@ const loginPage = () => {
   };
 
   const handleLogin = async() => {
+    setIsLoading(true);
     try {
       const res = await loginUser(email, password);
       if (res.access_token) {
@@ -61,12 +65,15 @@ const loginPage = () => {
       }
     } catch (err) {
       triggerAlert("Invalid email or password", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const openOtp = async (purpose: "register" | "reset") => {
+    setIsLoading(true);
     try {
-      if (!email) return triggerAlert("Please enter your email.", "");
+      if (!email) return triggerAlert("Please enter your email.", "error");
       if (purpose === "register" && !fullname) return triggerAlert("Please enter your name.", "error");
 
       if (purpose === "register") {
@@ -79,10 +86,13 @@ const loginPage = () => {
       setShowOtpModal(true);
     } catch (err: any) {
       triggerAlert(err.message || "Failed to send OTP. Ensure it is an @iitk.ac.in email.", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleOtpVerify = async (otp: string) => {
+    setIsLoading(false);
     try {
       await checkOTP(email, otp, otpPurpose); 
       setShowOtpModal(false);
@@ -95,10 +105,13 @@ const loginPage = () => {
       }
     } catch (err) {
       triggerAlert("Invalid or expired OTP", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleRegister = async () => {
+    setIsLoading(true);
     if (password !== confirmPassword) return triggerAlert("Passwords do not match!", "error");
     try {
       await finalizeRegistration(email, verifiedOtp, password);
@@ -107,10 +120,13 @@ const loginPage = () => {
       setPassword(""); setConfirmPassword("");
     } catch (err) {
       triggerAlert("Registration failed", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handlePasswordReset = async () => {
+    setIsLoading(true);
     if (password !== confirmPassword) return triggerAlert("Passwords do not match!", "error");
     try {
       await finalizePasswordReset(email, verifiedOtp, password);
@@ -119,6 +135,8 @@ const loginPage = () => {
       setPassword(""); setConfirmPassword("");
     } catch (err) {
       triggerAlert("Failed to update password.", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -146,10 +164,12 @@ const loginPage = () => {
             <label>Password</label>
             <input type="password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} />
 
-            <button className="primary-btn" onClick={handleLogin}>Login</button>
+            <button className="primary-btn" onClick={handleLogin} disabled={isLoading}>
+              {isLoading ? <div className="button-spinner"></div> : "Login"}
+            </button>
             <button className="google-btn">Sign in with Google</button>
 
-            <p className="link" onClick={() => {handleModeSwitch("forgot-email"); setEmail(""); setPassword("");}}> Forgot Password? </p>
+            <p className="link" onClick={() => !isLoading && handleModeSwitch("forgot-email")}>Forgot Password?</p>
           </>
         )}
 
@@ -162,7 +182,9 @@ const loginPage = () => {
             <label>IITK Email ID</label>
             <input type="email" placeholder="username@iitk.ac.in" value={email} onChange={(e) => setEmail(e.target.value)}/>
 
-            <button className="primary-btn" onClick={() => openOtp("register")}> Next </button>
+            <button className="primary-btn" onClick={() => openOtp("register")} disabled={isLoading}>
+              {isLoading ? <div className="button-spinner"></div> : "Next"}
+            </button>
           </>
         )}
 
@@ -181,7 +203,9 @@ const loginPage = () => {
             <label>Confirm Password</label>
             <input  type="password" placeholder="Confirm your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}/>
             
-            <button className="primary-btn" onClick={handleRegister}> Register </button>
+            <button className="primary-btn" onClick={handleRegister} disabled={isLoading}>
+              {isLoading ? <div className="button-spinner"></div> : "Register"}
+            </button>
           </>
         )}
 
@@ -194,9 +218,11 @@ const loginPage = () => {
             <label>IITK Email ID</label>
             <input type="email" placeholder="username@iitk.ac.in" value={email} onChange={(e) => setEmail(e.target.value)} />
 
-            <button className = "primary-btn" onClick={() => openOtp("reset")}> Next </button>
+            <button className="primary-btn" onClick={() => openOtp("reset")} disabled={isLoading}>
+              {isLoading ? <div className="button-spinner"></div> : "Next"}
+            </button>
             
-            <p className="link" onClick={() => handleModeSwitch("login")}> Go Back </p>
+            <p className="link" onClick={() => !isLoading && handleModeSwitch("login")}>Go Back</p>
           </>
         )}
 
@@ -211,9 +237,11 @@ const loginPage = () => {
             <label>Confirm Password</label>
             <input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
 
-            <button className="primary-btn" onClick={handlePasswordReset}>Update Password</button>
+            <button className="primary-btn" onClick={handlePasswordReset} disabled={isLoading}>
+              {isLoading ? <div className="button-spinner"></div> : "Update Password"}
+            </button>
             
-            <p className="link" onClick={() => handleModeSwitch("login")}> Back to Login </p>
+            <p className="link" onClick={() => !isLoading && handleModeSwitch("login")}>Back to Login</p>
           </>
         )}
 
