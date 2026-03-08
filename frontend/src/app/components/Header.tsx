@@ -1,8 +1,8 @@
 import React, { useState } from "react";
+import Link from "next/link";
 import "./Header.css";
 
 interface HeaderProps {
-  onEditProfile?: () => void;
   showEditProfile?: boolean;
 }
 
@@ -13,7 +13,7 @@ const SearchIcon = () => (
   </svg>
 );
 
-const Header: React.FC<HeaderProps> = ({ onEditProfile, showEditProfile = false }) => {
+const Header: React.FC<HeaderProps> = ({ showEditProfile = false }) => {
   const [searchValue, setSearchValue] = useState("");
 
   return (
@@ -39,9 +39,9 @@ const Header: React.FC<HeaderProps> = ({ onEditProfile, showEditProfile = false 
 
       {/* Edit Profile Button */}
       {showEditProfile && (
-        <button className="header__edit-btn" onClick={onEditProfile}>
+        <Link href="/profilePage/editProfilePage" className="header__edit-btn">
           Edit Profile
-        </button>
+        </Link>
       )}
     </header>
   );

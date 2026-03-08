@@ -1,0 +1,154 @@
+:root {
+  --color-darkest:   #001D39;
+  --color-dark:      #0A4174;
+  --color-mid:       #49769F;
+  --color-teal:      #4E8EA2;
+  --color-slate:     #6EA2B3;
+  --color-sky:       #7BBDE8;
+  --color-lightest:  #BDD8E9;
+
+  --sidebar-width:  60px;
+  --header-height:  60px;
+
+  /* Page surface colors */
+  --bg-page:        #f0f4f8;
+  --bg-card:        #ffffff;
+  --bg-card-header: #f7f9fb;
+  --text-primary:   #0d1f33;
+  --text-secondary: #4a6070;
+  --text-muted:     #8aa0b0;
+  --border-color:   #dce6ef;
+}
+
+.edit-profile-page {
+  flex: 1;
+  padding: 32px 40px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.edit-profile-page__actions {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edit-profile-page__action-btn {
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 20px;
+
+  background-color: var(--color-mid);
+  border: none;
+  border-radius: 5px;
+
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.edit-profile-page__action-btn:hover:not(:disabled) {
+  background-color: var(--color-sky);
+  box-shadow: 0 4px 14px rgba(78, 142, 162, 0.45);
+  transform: translateY(-1px);
+}
+
+.edit-profile-page__action-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.edit-profile-page__action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-profile-page__card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 12px rgba(10, 65, 116, 0.06);
+}
+
+@media (max-width: 640px) {
+  .edit-profile-page {
+    padding: 16px 16px 40px;
+  }
+}
+
+.edit-profile-page .edit-modal__body {
+  padding: 28px 32px 32px;
+  gap: 20px;
+}
+
+/* Card title bar */
+.edit-profile-page__card-header {
+  padding: 20px 32px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-card-header);
+  border-radius: 16px 16px 0 0;
+}
+
+.edit-profile-page__card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.edit-profile-page .edit-modal__avatar-hint {
+  color: var(--text-muted);
+}
+
+.edit-profile-page .edit-modal__label {
+  color: var(--text-muted);
+}
+
+.edit-profile-page .edit-modal__hint-inline {
+  color: var(--text-muted);
+}
+
+.edit-profile-page .edit-modal__input, .edit-profile-page .edit-modal__textarea {
+  background: var(--bg-page);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.edit-profile-page .edit-modal__input::placeholder, .edit-profile-page .edit-modal__textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.edit-profile-page .edit-modal__input:focus .edit-profile-page .edit-modal__textarea:focus {
+  border-color: var(--color-mid);
+  background: var(--bg-page);
+  box-shadow: 0 0 0 3px rgba(73, 118, 159, 0.12);
+}
+
+.edit-profile-page .edit-modal__section-title {
+  color: var(--color-mid);
+  border-top: 1px solid var(--border-color);
+}
+
+.edit-profile-page .edit-modal__avatar-btn {
+  background: var(--color-dark);
+  border: 2px solid var(--bg-card);
+}
+.edit-profile-page .edit-modal__avatar-btn:hover {
+  background: var(--color-mid);
+}

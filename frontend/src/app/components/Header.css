@@ -89,8 +89,8 @@
 /* Edit Profile Button */
 .header__edit-btn {
   flex-shrink: 0;
-  height: 36px;
-  padding: 0 20px;
+  height: 38px;
+  padding: 8px 20px;
 
   background-color: var(--color-mid);
   border: none;

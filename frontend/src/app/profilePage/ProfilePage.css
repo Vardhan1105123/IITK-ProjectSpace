@@ -24,7 +24,8 @@
 .app-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background-color: var(--bg-page);
 }
 
@@ -34,6 +35,7 @@
   display: flex;
   flex-direction: row;
   min-height: 0;
+  overflow: hidden;
 }
 
 /* MAIN SCROLLABLE AREA */
@@ -107,9 +109,7 @@
   margin: 5px 0px -5px 0px;
 }
 
-.profile-card__desg,
-.profile-card__dept,
-.profile-card__degr {
+.profile-card__desg, .profile-card__dept, .profile-card__degr {
   margin: -1px 0 -5px 0px;
   font-size: 18px;
   color: var(--text-primary);
@@ -144,7 +144,7 @@
   color: var(--color-dark);
 }
 
-/* SKILLS + BIO — nested card inside profile-card */
+/* SKILLS + BIO */
 .skills-bio {
   padding: 16px 20px;
   background: var(--bg-card);
@@ -179,9 +179,17 @@
   color: #fff;
 }
 
-.skills-bio__tag--teal  { background-color: #2d8a6e; }
-.skills-bio__tag--blue  { background-color: var(--color-teal); }
-.skills-bio__tag--red   { background-color: #a53d2a; }
+.skills-bio__tag--teal { 
+  background-color: #2d8a6e; 
+}
+
+.skills-bio__tag--blue { 
+  background-color: var(--color-teal); 
+}
+
+.skills-bio__tag--red { 
+  background-color: #a53d2a; 
+}
 
 .skills-bio__bio {
   margin: 0;
@@ -425,7 +433,10 @@
   color: #e8f0f8;
   transition: background 0.15s;
 }
-.edit-modal__avatar-btn:hover { background: #2a6ba8; }
+
+.edit-modal__avatar-btn:hover { 
+  background: #2a6ba8; 
+}
 
 .edit-modal__avatar-hint {
   font-size: 0.75rem;
