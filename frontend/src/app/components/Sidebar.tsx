@@ -45,6 +45,18 @@ const LogoutIcon = () => (
   </svg>
 );
 
+const ChevronLeftIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
 /* Nav item type */
 interface NavItem {
   id: string;
@@ -64,13 +76,20 @@ const topNavItems: NavItem[] = [
 interface SidebarProps {
   defaultActive?: string;
   onNavigate?: (id: string) => void;
+  defaultExpanded?: boolean;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
   defaultActive = "profile",
   onNavigate,
+  defaultExpanded = true,
 }) => {
   const [active, setActive] = useState(defaultActive);
+
+  const [expanded, setExpanded] = useState(() => {
+    const stored = localStorage.getItem("sidebar-expanded");
+    return stored !== null ? stored === "true" : defaultExpanded;
+  });
 
   const handleClick = (id: string) => {
     setActive(id);
@@ -78,7 +97,23 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${expanded ? " sidebar--expanded" : ""}`}>
+
+      {/* Collapse / Expand toggle */}
+      <button
+        className="sidebar__toggle"
+        onClick={() => setExpanded((v) => {
+          localStorage.setItem("sidebar-expanded", String(!v));
+          return !v;
+        })}
+        title={expanded ? "Collapse sidebar" : "Expand sidebar"}
+        aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+      >
+        <span className="sidebar__icon">
+          {expanded ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+        </span>
+        {expanded && <span className="sidebar__toggle-label">Collapse</span>}
+      </button>
 
       {/* Main nav */}
       <nav className="sidebar__nav">
@@ -91,6 +126,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             aria-label={item.label}
           >
             <span className="sidebar__icon">{item.icon}</span>
+            {expanded && <span className="sidebar__label">{item.label}</span>}
             {item.badge !== undefined && (
               <span className="sidebar__badge">{item.badge}</span>
             )}
@@ -98,7 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </nav>
 
-      {/* Bottom: logout */}
+      {/* logout */}
       <div className="sidebar__bottom">
         <button
           className="sidebar__nav-item sidebar__logout"
@@ -108,6 +144,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <span className="sidebar__icon">
             <LogoutIcon />
           </span>
+          {expanded && <span className="sidebar__label">Logout</span>}
         </button>
       </div>
     </aside>

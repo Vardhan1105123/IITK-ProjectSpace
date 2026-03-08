@@ -7,7 +7,8 @@
   --color-sky:       #7BBDE8;
   --color-lightest:  #BDD8E9;
 
-  --sidebar-width: 60px;
+  --sidebar-width-collapsed: 60px;
+  --sidebar-width-expanded:  240px;
 }
 
 /* SIDEBAR */
@@ -18,7 +19,7 @@
   bottom: 0;
   z-index: 200;
 
-  width: var(--sidebar-width);
+  width: var(--sidebar-width-collapsed);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -26,17 +27,56 @@
 
   background-color: var(--color-darkest);
   border-right: 1px solid rgba(123, 189, 232, 0.1);
+
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 }
 
-/* Brand / Logo */
-.sidebar__brand {
+.sidebar--expanded {
+  width: var(--sidebar-width-expanded);
+  align-items: flex-start;
+}
+
+/* Toggle button */
+.sidebar__toggle {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  margin-bottom: 20px;
+  gap: 10px;
+
+  width: calc(100% - 16px);
+  margin: 0 8px 12px;
+  padding: 8px 10px;
+
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--color-slate);
+  cursor: pointer;
   flex-shrink: 0;
+  white-space: nowrap;
+
+  transition: background 0.18s, color 0.18s;
+}
+
+.sidebar__toggle:hover {
+  background-color: rgba(123, 189, 232, 0.08);
+  color: var(--color-sky);
+}
+
+/* When collapsed, center the toggle icon */
+.sidebar:not(.sidebar--expanded) .sidebar__toggle {
+  width: 44px;
+  margin: 0 auto 12px;
+  padding: 8px;
+  justify-content: center;
+}
+
+.sidebar__toggle-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
 }
 
 /* Nav list */
@@ -50,23 +90,35 @@
   padding: 0 8px;
 }
 
+.sidebar--expanded .sidebar__nav {
+  align-items: flex-start;
+}
+
 /* Individual nav button */
 .sidebar__nav-item {
   position: relative;
-
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 12px;
 
   width: 44px;
   height: 44px;
+  padding: 0 10px;
   border-radius: 12px;
   border: none;
   background: transparent;
   color: white;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 
-  transition: background 0.18s, color 0.18s, transform 0.15s;
+  transition: background 0.18s, color 0.18s, transform 0.15s, width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Expanded: stretch full nav width */
+.sidebar--expanded .sidebar__nav-item {
+  width: 100%;
+  height: 46px;
 }
 
 .sidebar__nav-item:hover {
@@ -99,6 +151,25 @@
   align-items: center;
   justify-content: center;
   line-height: 0;
+  flex-shrink: 0;
+}
+
+/* Label (visible only when expanded) */
+.sidebar__label {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: inherit;
+
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.2s ease 0.05s, transform 0.2s ease 0.05s;
+  pointer-events: none;
+}
+
+.sidebar--expanded .sidebar__label {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 /* Notification badge */
@@ -122,17 +193,26 @@
   text-align: center;
 }
 
+/* notifications badge will be at the right most end when expanded */
+.sidebar--expanded .sidebar__badge {
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+}
+
 /* Bottom section (logout) */
 .sidebar__bottom {
+  width: 100%;
   padding: 0 8px;
   margin-top: 8px;
 }
 
 .sidebar__logout {
-  color: white;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .sidebar__logout:hover {
   color: #e87b7b;
   background-color: rgba(232, 123, 123, 0.1);
+  transform: translateX(2px);
 }
