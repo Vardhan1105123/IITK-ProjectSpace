@@ -44,3 +44,7 @@ class User(SQLModel, table=True):
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    projects: List["Project"] = Relationship(
+        back_populates="team_members", link_model="ProjectTeamLink"
+    )
