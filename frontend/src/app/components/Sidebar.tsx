@@ -102,6 +102,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   const handleClick = (id: string) => {
     setActive(id);
     onNavigate?.(id);
+
+    const routes: Record<string, string> = {
+      home: "/homepage",
+      search: "/searchPage",
+      alerts: "/notificationPage",
+      profile: "/profilePage",
+      create: "/postCreationForm",
+    };
+
+    if(routes[id]) router.push(routes[id]);
   };
 
   const onLogout = () => {
