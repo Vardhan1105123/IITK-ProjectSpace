@@ -41,15 +41,12 @@ class RecruitmentBase(SQLModel):
     description_format: str = Field(default="markdown")
 
     domains: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(String)))
-    prerequisites: List[str] = Field(
-        default_factory=list, sa_column=Column(ARRAY(String))
-    )
-    allowed_designations: List[str] = Field(
-        default_factory=list, sa_column=Column(ARRAY(String))
-    )
-    allowed_departments: List[str] = Field(
-        default_factory=list, sa_column=Column(ARRAY(String))
-    )
+    prerequisites: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(String)))
+    allowed_designations: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(String)))
+    allowed_departments: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(String)))
+
+    links: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(String)))
+    media_urls: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(String)))
 
     status: str = Field(default="Open", index=True)  # Open or Closed
 
@@ -60,9 +57,7 @@ class Recruitment(RecruitmentBase, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    recruiters: List["User"] = Relationship(
-        back_populates="managed_recruitments", link_model=RecruitmentRecruiterLink
-    )
+    recruiters: List["User"] = Relationship(back_populates="managed_recruitments", link_model=RecruitmentRecruiterLink)
 
     applications: List[Application] = Relationship(back_populates="recruitment")
 
