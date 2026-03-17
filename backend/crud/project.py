@@ -7,7 +7,6 @@ from typing import Sequence
 
 def create_project(session: Session, project_create: ProjectCreate, creator_id: uuid.UUID) -> Project:
     db_project = Project.model_validate(project_create)
-    db_project.creator_id = creator_id 
     
     session.add(db_project)
     session.commit()
