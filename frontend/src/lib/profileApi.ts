@@ -2,6 +2,17 @@ import { authHeaders } from "@/lib/token";
 
 const API = "http://127.0.0.1:8000";
 
+const extractError = (data: any, fallbackMsg: string): string => {
+  if (!data || !data.detail) return fallbackMsg;
+  if (typeof data.detail === "string") return data.detail;
+  if (Array.isArray(data.detail) && data.detail[0]?.msg) {
+    let msg = data.detail[0].msg;
+    if (msg.startsWith("Value error, ")) msg = msg.replace("Value error, ", "");
+    return msg;
+  }
+  return fallbackMsg;
+};
+
 export interface UserProfile {
   id: string;
   fullname: string | null;
@@ -23,10 +34,27 @@ export interface UserProfile {
   profile_picture_url: string | null;
 
   is_active: boolean;
-  is_admin: boolean;
   created_at: string;
 
   cards?: CardData[];
+}
+
+export interface UserProfileView {
+  id: string;
+  fullname: string;
+  iitk_email: string;
+  secondary_email?: string;
+  designation: string;
+  degree: string;
+  department: string;
+  bio: string;
+  profile_picture_url?: string;
+  github?: string;
+  linkedin?: string;
+  other_link1?: string;
+  other_link2?: string;
+  skills: string[];
+  domains: string[];
 }
 
 export interface CardData {
@@ -67,5 +95,18 @@ export async function updateMyProfile(updateData: Partial<UserProfile>): Promise
     console.error("🚨 FastAPI 422 Validation Error:", JSON.stringify(errorData, null, 2));
     throw new Error(`API Error: ${JSON.stringify(errorData)}`);
   };
+  return res.json();
+}
+
+// Fetch another user's public profile by their ID
+export async function getUserById(userId: string): Promise<UserProfileView> {
+  const res = await fetch(`${API}/users/${userId}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+  });
+  if (res.status === 401) throw new Error("Unauthorized");
+  if (!res.ok) throw new Error(extractError(await res.json().catch(() => ({})), "User not found"));
   return res.json();
 }

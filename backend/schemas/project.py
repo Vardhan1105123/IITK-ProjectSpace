@@ -67,6 +67,10 @@ class ProjectPublic(ProjectBase):
     created_at: datetime
     updated_at: datetime
     team_members: List[UserSummary] = []
+    
+    creator_id: uuid.UUID
+    creator_name: str
+    creator_avatar_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -80,6 +84,10 @@ class ProjectSummary(BaseModel):
     summary: str
     domains: List[str] = []
     created_at: datetime
+    
+    creator_id: uuid.UUID
+    creator_name: str
+    creator_avatar_url: Optional[str] = None
 
     class Config:
         from_attributes = True

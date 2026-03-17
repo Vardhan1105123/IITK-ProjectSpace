@@ -126,6 +126,10 @@ class RecruitmentPublic(RecruitmentBase):
     updated_at: datetime
     recruiters: List[UserSummary] = []  # list of recruiter user IDs
     applications: List[ApplicationPublic] = []
+    
+    creator_id: uuid.UUID
+    creator_name: str
+    creator_avatar_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -142,6 +146,10 @@ class RecruitmentSummary(BaseModel):
     allowed_departments: List[str] = []
     status: str
     created_at: datetime
+    
+    creator_id: uuid.UUID
+    creator_name: str
+    creator_avatar_url: Optional[str] = None
 
     class Config:
         from_attributes = True

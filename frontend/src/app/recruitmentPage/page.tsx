@@ -1,11 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./recruitmentPage.css";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
+import { useParams, useRouter } from "next/navigation";
+import { getRecruitment, applyToRecruitment, RecruitmentPublic } from "@/lib/recruitmentApi";
+import { fetchMyProfile } from "@/lib/profileApi";
 
-/* Types — mirrors recruitments.py model */
+/* Types */
 export interface Recruiter {
   id: string;
   name: string;
@@ -17,21 +20,14 @@ export interface Recruitment {
   title: string;
   description: string;
   description_format: "plain-text" | "markdown";
-
   domains: string[];
   prerequisites: string[];
   allowed_designations: string[];
   allowed_departments: string[];
-
   status: "Open" | "Closed";
-
   created_at: string;
   updated_at: string;
-
-  // Populated via RecruitmentRecruiterLink join
   recruiters: Recruiter[];
-
-  // Derived by API — total application count (not exposing individual applications)
   application_count?: number;
 }
 
@@ -54,6 +50,28 @@ function formatDate(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+function mapToRecruitment(r: RecruitmentPublic): Recruitment {
+  return {
+    id: r.id,
+    title: r.title,
+    description: r.description,
+    description_format: r.description_format,
+    domains: r.domains,
+    prerequisites: r.prerequisites,
+    allowed_designations: r.allowed_designations,
+    allowed_departments: r.allowed_departments,
+    status: r.status,
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+    recruiters: r.recruiters.map((rec) => ({
+      id: rec.id,
+      name: rec.fullname,
+      avatar_url: rec.profile_picture_url ?? undefined,
+    })),
+    application_count: r.applications.length,
+  };
 }
 
 /* Description */
@@ -87,192 +105,259 @@ const UsersIcon = () => (
   </svg>
 );
 
+/* Loading Skeleton */
+const RecruitmentSkeleton = () => (
+  <div className="recruit-card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    {[60, 40, 100, 30, 200].map((w, i) => (
+      <div key={i} style={{
+        height: i === 4 ? 160 : 16,
+        width: `${w}%`,
+        maxWidth: "100%",
+        borderRadius: 8,
+        background: "var(--border-color)",
+        animation: "pulse 1.5s ease-in-out infinite",
+      }} />
+    ))}
+  </div>
+);
+
 /* RecruitmentPage */
-interface RecruitmentPageProps {
-  recruitment: Recruitment;
-  onApply?: () => void;
-}
+const RecruitmentPage: React.FC = () => {
+  const params        = useParams();
+  const router        = useRouter();
+  const recruitmentId = params?.id as string;
 
-const RecruitmentPage: React.FC<RecruitmentPageProps> = ({ recruitment, onApply }) => {
-  const {
-    title,
-    description,
-    description_format,
-    domains,
-    prerequisites,
-    allowed_designations,
-    allowed_departments,
-    status,
-    created_at,
-    updated_at,
-    recruiters,
-    application_count,
-  } = recruitment;
+  const [recruitment, setRecruitment]   = useState<Recruitment | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState<string | null>(null);
+  const [applying, setApplying]         = useState(false);
+  const [applySuccess, setApplySuccess] = useState(false);
+  const [applyError, setApplyError]     = useState<string | null>(null);
 
-  const isOpen = status === "Open";
-  const wasUpdated = updated_at !== created_at;
+  useEffect(() => {
+    if (!recruitmentId) return;
+
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [raw, me] = await Promise.all([
+          getRecruitment(recruitmentId),
+          fetchMyProfile(),
+        ]);
+        setRecruitment(mapToRecruitment(raw));
+        setCurrentUserId(me.id);
+      } catch (err: any) {
+        if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
+        if (err.message.includes("not found") || err.message.includes("404")) {
+          setError("Recruitment not found.");
+        } else {
+          setError("Failed to load recruitment. Please try again.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [recruitmentId]);
+
+  const handleApply = async () => {
+    if (!recruitment) return;
+    setApplying(true);
+    setApplyError(null);
+    try {
+      await applyToRecruitment(recruitment.id, { recruitment_id: recruitment.id });
+      setApplySuccess(true);
+    } catch (err: any) {
+      setApplyError(err.message || "Failed to apply. Please try again.");
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const isRecruiter = recruitment?.recruiters?.some((r) => r.id === currentUserId) ?? false;
+  const isOpen     = recruitment?.status === "Open";
+  const wasUpdated = recruitment ? recruitment.updated_at !== recruitment.created_at : false;
 
   return (
     <div className="app-shell">
-      <Header showEditProfile={false} />
+      <Header
+        showEditProfile={false}
+        editHref={isRecruiter ? `/recruitmentPage/${recruitmentId}/edit` : undefined}
+        editLabel="Edit Recruitment"
+      />
 
       <div className="app-body">
         <Sidebar defaultActive="home" />
 
-        {/* Main */}
         <main className="recruit-main">
-        <div className="recruit-card">
 
-          {/* Top row: stacked recruiter avatars + status badge + Apply */}
-          <div className="recruit-top-row">
-            <div className="recruit-recruiters-inline">
-              {/* Stacked avatars */}
-              <div className="recruit-avatar-stack">
-                {recruiters.slice(0, 4).map((r, i) => (
-                  <div
-                    key={r.id}
-                    className={`recruit-avatar-stack-item c${(i % 5) + 1}`}
-                    title={r.name}
-                  >
-                    {r.avatar_url
-                      ? <img src={r.avatar_url} alt={r.name} />
-                      : getInitials(r.name)
-                    }
+          {/* Loading */}
+          {loading && <RecruitmentSkeleton />}
+
+          {/* Error */}
+          {!loading && error && (
+            <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
+              {error}
+            </div>
+          )}
+
+          {/* Recruitment Content */}
+          {!loading && !error && recruitment && (
+            <div className="recruit-card">
+
+              {/* Recruiters + Status + Apply */}
+              <div className="recruit-top-row">
+                <div className="recruit-recruiters-inline">
+                  <div className="recruit-avatar-stack">
+                    {recruitment.recruiters.slice(0, 4).map((r, i) => (
+                      <div key={r.id} className={`recruit-avatar-stack-item c${(i % 5) + 1}`} title={r.name}>
+                        {r.avatar_url ? <img src={r.avatar_url} alt={r.name} /> : getInitials(r.name)}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                  <span className="recruit-recruiters-label">
+                    {recruitment.recruiters.map((r) => r.name.split(" ")[0]).join(", ")}
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <span className={`recruit-status-badge ${isOpen ? "open" : "closed"}`}>
+                    <span className="recruit-status-dot" />
+                    {recruitment.status}
+                  </span>
+
+                  <button
+                    className="recruit-apply-btn"
+                    onClick={handleApply}
+                    disabled={!isOpen || applying || applySuccess}
+                  >
+                    {applying ? "Applying..." : applySuccess ? "Applied!" : "Apply"}
+                  </button>
+                </div>
               </div>
-              {/* Names label */}
-              <span className="recruit-recruiters-label">
-                {recruiters.map(r => r.name.split(" ")[0]).join(", ")}
-              </span>
-            </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              {/* Status badge */}
-              <span className={`recruit-status-badge ${isOpen ? "open" : "closed"}`}>
-                <span className="recruit-status-dot" />
-                {status}
-              </span>
+              {/* Apply feedback */}
+              {applySuccess && (
+                <p style={{ color: "#1a9e72", fontSize: 13, marginBottom: 8 }}>
+                  Your application has been submitted successfully!
+                </p>
+              )}
+              {applyError && (
+                <p style={{ color: "#a53d2a", fontSize: 13, marginBottom: 8 }}>
+                  {applyError}
+                </p>
+              )}
 
-              {/* Apply button */}
-              <button
-                className="recruit-apply-btn"
-                onClick={onApply}
-                disabled={!isOpen}
-              >
-                Apply
-              </button>
-            </div>
-          </div>
+              {/* Title */}
+              <h1 className="recruit-title">{recruitment.title}</h1>
 
-          {/* Title */}
-          <h1 className="recruit-title">{title}</h1>
-
-          {/* Domain tags */}
-          {domains.length > 0 && (
-            <div className="recruit-tags">
-              {domains.map((tag) => (
-                <span key={tag} className="recruit-tag">{tag}</span>
-              ))}
-            </div>
-          )}
-
-          {/* Description */}
-          <div className="recruit-section-heading">Project and Recruitment Details</div>
-          <DescriptionBlock text={description} format={description_format} />
-
-          {/* Prerequisites */}
-          {prerequisites.length > 0 && (
-            <>
-              <hr className="recruit-divider" />
-              <div>
-                <div className="recruit-section-heading">Prerequisites</div>
-                <div className="recruit-prereq-tags">
-                  {prerequisites.map((p) => (
-                    <span key={p} className="recruit-prereq-tag">{p}</span>
+              {/* Domain tags */}
+              {recruitment.domains.length > 0 && (
+                <div className="recruit-tags">
+                  {recruitment.domains.map((tag) => (
+                    <span key={tag} className="recruit-tag">{tag}</span>
                   ))}
                 </div>
-              </div>
-            </>
-          )}
+              )}
 
-          {/* Eligibility */}
-          {(allowed_designations.length > 0 || allowed_departments.length > 0) && (
-            <>
+              {/* Description */}
+              <div className="recruit-section-heading">Project and Recruitment Details</div>
+              <DescriptionBlock text={recruitment.description} format={recruitment.description_format} />
+
+              {/* Prerequisites */}
+              {recruitment.prerequisites.length > 0 && (
+                <>
+                  <hr className="recruit-divider" />
+                  <div>
+                    <div className="recruit-section-heading">Prerequisites</div>
+                    <div className="recruit-prereq-tags">
+                      {recruitment.prerequisites.map((p) => (
+                        <span key={p} className="recruit-prereq-tag">{p}</span>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Eligibility */}
+              {(recruitment.allowed_designations.length > 0 || recruitment.allowed_departments.length > 0) && (
+                <>
+                  <hr className="recruit-divider" />
+                  <div>
+                    <div className="recruit-section-heading">Eligibility</div>
+                    <div className="recruit-eligibility-grid">
+                      {recruitment.allowed_designations.length > 0 && (
+                        <div>
+                          <div className="recruit-eligibility-group-label">Designations</div>
+                          <div className="recruit-eligibility-chips">
+                            {recruitment.allowed_designations.map((d) => (
+                              <span key={d} className="recruit-eligibility-chip">{d}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {recruitment.allowed_departments.length > 0 && (
+                        <div>
+                          <div className="recruit-eligibility-group-label">Departments</div>
+                          <div className="recruit-eligibility-chips">
+                            {recruitment.allowed_departments.map((d) => (
+                              <span key={d} className="recruit-eligibility-chip">{d}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Recruiters */}
+              {recruitment.recruiters.length > 0 && (
+                <>
+                  <hr className="recruit-divider" />
+                  <div>
+                    <div className="recruit-section-heading">Recruiters</div>
+                    <div className="recruit-recruiter-list">
+                      {recruitment.recruiters.map((r, i) => (
+                        <div key={r.id} className="recruit-recruiter-chip">
+                          <div className={`recruit-recruiter-avatar c${(i % 5) + 1}`}>
+                            {r.avatar_url ? <img src={r.avatar_url} alt={r.name} /> : getInitials(r.name)}
+                          </div>
+                          <span>{r.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Meta */}
               <hr className="recruit-divider" />
-              <div>
-                <div className="recruit-section-heading">Eligibility</div>
-                <div className="recruit-eligibility-grid">
-                  {allowed_designations.length > 0 && (
-                    <div>
-                      <div className="recruit-eligibility-group-label">Designations</div>
-                      <div className="recruit-eligibility-chips">
-                        {allowed_designations.map((d) => (
-                          <span key={d} className="recruit-eligibility-chip">{d}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {allowed_departments.length > 0 && (
-                    <div>
-                      <div className="recruit-eligibility-group-label">Departments</div>
-                      <div className="recruit-eligibility-chips">
-                        {allowed_departments.map((d) => (
-                          <span key={d} className="recruit-eligibility-chip">{d}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+              <div className="recruit-meta">
+                <span className="recruit-meta-item">
+                  <CalendarIcon />
+                  Posted {formatDate(recruitment.created_at)}
+                </span>
+                {wasUpdated && (
+                  <span className="recruit-meta-item">
+                    <CalendarIcon />
+                    Updated {formatDate(recruitment.updated_at)}
+                  </span>
+                )}
+                {recruitment.application_count !== undefined && (
+                  <span className="recruit-meta-item">
+                    <UsersIcon />
+                    {recruitment.application_count} application{recruitment.application_count !== 1 ? "s" : ""}
+                  </span>
+                )}
               </div>
-            </>
+
+            </div>
           )}
 
-          {/* Recruiters */}
-          {recruiters.length > 0 && (
-            <>
-              <hr className="recruit-divider" />
-              <div>
-                <div className="recruit-section-heading">Recruiters</div>
-                <div className="recruit-recruiter-list">
-                  {recruiters.map((r, i) => (
-                    <div key={r.id} className="recruit-recruiter-chip">
-                      <div className={`recruit-recruiter-avatar c${(i % 5) + 1}`}>
-                        {r.avatar_url
-                          ? <img src={r.avatar_url} alt={r.name} />
-                          : getInitials(r.name)
-                        }
-                      </div>
-                      <span>{r.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Meta: dates + application count */}
-          <hr className="recruit-divider" />
-          <div className="recruit-meta">
-            <span className="recruit-meta-item">
-              <CalendarIcon />
-              Posted {formatDate(created_at)}
-            </span>
-            {wasUpdated && (
-              <span className="recruit-meta-item">
-                <CalendarIcon />
-                Updated {formatDate(updated_at)}
-              </span>
-            )}
-            {application_count !== undefined && (
-              <span className="recruit-meta-item">
-                <UsersIcon />
-                {application_count} application{application_count !== 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
-
-        </div>
         </main>
       </div>
     </div>

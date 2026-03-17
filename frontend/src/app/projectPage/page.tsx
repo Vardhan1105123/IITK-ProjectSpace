@@ -1,9 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./projectPage.css";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
+import { useParams, useRouter } from "next/navigation";
+import { getProject, ProjectPublic } from "@/lib/projectApi";
+import { fetchMyProfile } from "@/lib/profileApi";
 
 /* Types */
 export interface TeamMember {
@@ -22,14 +25,10 @@ export interface Project {
   links: string[];
   media_urls: string[];
   creator_id: string;
-  created_at: string;
-  updated_at: string;
-
-  // Joined from User table by API
   creator_name?: string;
   creator_avatar_url?: string;
-
-  // Populated using ProjectTeamLink join
+  created_at: string;
+  updated_at: string;
   team_members?: TeamMember[];
 }
 
@@ -52,6 +51,29 @@ function formatDate(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+function mapToProject(p: ProjectPublic): Project {
+  return {
+    id: p.id,
+    title: p.title,
+    summary: p.summary,
+    description: p.description,
+    description_format: p.description_format,
+    domains: p.domains,
+    links: p.links,
+    media_urls: p.media_urls,
+    creator_id: p.creator_id,
+    creator_name: p.creator_name,
+    creator_avatar_url: p.creator_avatar_url,
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+    team_members: p.team_members.map((m) => ({
+      id: m.id,
+      name: m.fullname,
+      avatar_url: m.profile_picture_url ?? undefined,
+    })),
+  };
 }
 
 /* Creator Avatar */
@@ -86,7 +108,7 @@ const DescriptionBlock: React.FC<{ text: string; format: string }> = ({ text, fo
   return <p className="project-description">{text}</p>;
 };
 
-/* Calendar icon */
+/* Calendar Icon */
 const CalendarIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -96,131 +118,184 @@ const CalendarIcon = () => (
   </svg>
 );
 
+/* Loading Skeleton */
+const ProjectSkeleton = () => (
+  <div className="project-card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    {[80, 50, 100, 40, 200].map((w, i) => (
+      <div key={i} style={{
+        height: i === 4 ? 160 : 16,
+        width: `${w}%`,
+        maxWidth: "100%",
+        borderRadius: 8,
+        background: "var(--border-color)",
+        animation: "pulse 1.5s ease-in-out infinite"
+      }} />
+    ))}
+  </div>
+);
+
 /* ProjectPage */
-interface ProjectPageProps {
-  project: Project;
-}
+const ProjectPage: React.FC = () => {
+  const params    = useParams();
+  const router    = useRouter();
+  const projectId = params?.id as string;
 
-const ProjectPage: React.FC<ProjectPageProps> = ({ project }) => {
-  const {
-    title,
-    summary,
-    description,
-    description_format,
-    domains,
-    links,
-    media_urls,
-    creator_name,
-    creator_avatar_url,
-    created_at,
-    updated_at,
-    team_members,
-  } = project;
+  const [project, setProject]           = useState<Project | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState<string | null>(null);
 
-  const creatorDisplayName = creator_name ?? "Unknown";
-  const hasTeam = team_members && team_members.length > 0;
-  const wasUpdated = updated_at !== created_at;
+  useEffect(() => {
+    if (!projectId) return;
+
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [raw, me] = await Promise.all([
+          getProject(projectId),
+          fetchMyProfile(),
+        ]);
+        setProject(mapToProject(raw));
+        setCurrentUserId(me.id);
+      } catch (err: any) {
+        if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
+        if (err.message.includes("not found") || err.message.includes("404")) {
+          setError("Project not found.");
+        } else {
+          setError("Failed to load project. Please try again.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [projectId]);
+
+  const isTeamMember = project?.team_members?.some((m) => m.id === currentUserId) ?? false;
+  const creatorDisplayName = project?.creator_name ?? "Unknown";
+  const hasTeam            = project?.team_members && project.team_members.length > 0;
+  const wasUpdated         = project ? project.updated_at !== project.created_at : false;
 
   return (
     <div className="app-shell">
-      <Header showEditProfile={false} />
+      <Header
+        showEditProfile={false}
+        editHref={isTeamMember ? `/projectPage/${projectId}/edit` : undefined}
+        editLabel="Edit Project"
+      />
 
       <div className="app-body">
         <Sidebar defaultActive="home" />
 
-        {/* Main */}
         <main className="project-main">
-        <div className="project-card">
 
-          {/* Creator row */}
-          <div className="project-creator-row">
-            <div className="project-creator-info">
-              <CreatorAvatar name={creatorDisplayName} avatarUrl={creator_avatar_url} />
-              <div className="project-creator-name">{creatorDisplayName}</div>
-            </div>
-          </div>
+          {/* Loading */}
+          {loading && <ProjectSkeleton />}
 
-          {/* Title */}
-          <h1 className="project-title">{title}</h1>
-
-          {/* Summary */}
-          {summary && <p className="project-summary">{summary}</p>}
-
-          {/* Domain tags */}
-          {domains.length > 0 && (
-            <div className="project-tags">
-              {domains.map((tag) => (
-                <span key={tag} className="project-tag">{tag}</span>
-              ))}
+          {/* Error */}
+          {!loading && error && (
+            <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
+              {error}
             </div>
           )}
 
-          {/* Details */}
-          <div className="project-section-heading">Details</div>
-          <DescriptionBlock text={description} format={description_format} />
+          {/* Project Content */}
+          {!loading && !error && project && (
+            <div className="project-card">
 
-          {/* Media */}
-          {media_urls.length > 0 && (
-            <div className={`project-media-grid${media_urls.length === 1 ? " single-media" : ""}`}>
-              {media_urls.map((url, i) => (
-                <img key={i} src={url} alt={`Project media ${i + 1}`} className="project-media-item" />
-              ))}
-            </div>
-          )}
-
-          {/* Team Members */}
-          {hasTeam && (
-            <>
-              <hr className="project-divider" />
-              <div className="project-team">
-                <div className="project-section-heading">Team</div>
-                <div className="project-team-list">
-                  {team_members!.map((member, i) => (
-                    <TeamChip key={member.id} member={member} colorIndex={i} />
-                  ))}
+              {/* Creator row */}
+              <div className="project-creator-row">
+                <div className="project-creator-info">
+                  <CreatorAvatar name={creatorDisplayName} avatarUrl={project.creator_avatar_url} />
+                  <div className="project-creator-name">{creatorDisplayName}</div>
                 </div>
               </div>
-            </>
-          )}
 
-          {/* External links */}
-          {links.length > 0 && (
-            <>
-              <hr className="project-divider" />
-              <div className="project-links">
-                <div className="project-section-heading">Links</div>
-                <div className="project-links-list">
-                  {links.map((link, i) => (
-                    <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="project-link-item">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
-                      {link}
-                    </a>
+              {/* Title */}
+              <h1 className="project-title">{project.title}</h1>
+
+              {/* Summary */}
+              {project.summary && <p className="project-summary">{project.summary}</p>}
+
+              {/* Domain tags */}
+              {project.domains.length > 0 && (
+                <div className="project-tags">
+                  {project.domains.map((tag) => (
+                    <span key={tag} className="project-tag">{tag}</span>
                   ))}
                 </div>
+              )}
+
+              {/* Details */}
+              <div className="project-section-heading">Details</div>
+              <DescriptionBlock text={project.description} format={project.description_format} />
+
+              {/* Media */}
+              {project.media_urls.length > 0 && (
+                <div className={`project-media-grid${project.media_urls.length === 1 ? " single-media" : ""}`}>
+                  {project.media_urls.map((url, i) => (
+                    <img key={i} src={url} alt={`Project media ${i + 1}`} className="project-media-item" />
+                  ))}
+                </div>
+              )}
+
+              {/* Team Members */}
+              {hasTeam && (
+                <>
+                  <hr className="project-divider" />
+                  <div className="project-team">
+                    <div className="project-section-heading">Team</div>
+                    <div className="project-team-list">
+                      {project.team_members!.map((member, i) => (
+                        <TeamChip key={member.id} member={member} colorIndex={i} />
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* External links */}
+              {project.links.length > 0 && (
+                <>
+                  <hr className="project-divider" />
+                  <div className="project-links">
+                    <div className="project-section-heading">Links</div>
+                    <div className="project-links-list">
+                      {project.links.map((link, i) => (
+                        <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="project-link-item">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                          </svg>
+                          {link}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Meta: dates */}
+              <hr className="project-divider" />
+              <div className="project-meta">
+                <span className="project-meta-item">
+                  <CalendarIcon />
+                  Posted {formatDate(project.created_at)}
+                </span>
+                {wasUpdated && (
+                  <span className="project-meta-item">
+                    <CalendarIcon />
+                    Last updated {formatDate(project.updated_at)}
+                  </span>
+                )}
               </div>
-            </>
+
+            </div>
           )}
 
-          {/* Meta: dates */}
-          <hr className="project-divider" />
-          <div className="project-meta">
-            <span className="project-meta-item">
-              <CalendarIcon />
-              Posted {formatDate(created_at)}
-            </span>
-            {wasUpdated && (
-              <span className="project-meta-item">
-                <CalendarIcon />
-                Last updated {formatDate(updated_at)}
-              </span>
-            )}
-          </div>
-
-        </div>
         </main>
       </div>
     </div>

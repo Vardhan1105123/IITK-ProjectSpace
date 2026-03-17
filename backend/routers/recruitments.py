@@ -38,7 +38,7 @@ def create_new_recruitment(
 ):
     """Creates a new recruitment post and makes the user the lead recruiter."""
     return create_recruitment(
-        session=db, recruitment_create=recruitment_in, current_user_id=current_user.id
+        session=db, recruitment_create=recruitment_in, creator_id=current_user.id
     )
 
 

@@ -60,7 +60,7 @@ export async function requestResetOTP(email: string) {
   return data;
 }
 
-export async function checkOTP(email: string, otp: string, purpose: "register") {
+export async function checkOTP(email: string, otp: string, purpose: "register" | "reset") {
   const res = await fetch(`${API}/check-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

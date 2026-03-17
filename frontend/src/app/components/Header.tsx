@@ -4,6 +4,8 @@ import "./Header.css";
 
 interface HeaderProps {
   showEditProfile?: boolean;
+  editHref?: string;
+  editLabel?: string;
 }
 
 const SearchIcon = () => (
@@ -13,7 +15,7 @@ const SearchIcon = () => (
   </svg>
 );
 
-const Header: React.FC<HeaderProps> = ({ showEditProfile = false }) => {
+const Header: React.FC<HeaderProps> = ({ showEditProfile = false, editHref, editLabel = "Edit" }) => {
   const [searchValue, setSearchValue] = useState("");
 
   return (
@@ -37,10 +39,17 @@ const Header: React.FC<HeaderProps> = ({ showEditProfile = false }) => {
         />
       </div>
 
-      {/* Edit Profile Button */}
+      {/* Profile page edit button */}
       {showEditProfile && (
         <Link href="/profilePage/editProfilePage" className="header__edit-btn">
           Edit Profile
+        </Link>
+      )}
+
+      {/* edit button for project / recruitment pages */}
+      {editHref && (
+        <Link href={editHref} className="header__edit-btn">
+          {editLabel}
         </Link>
       )}
     </header>

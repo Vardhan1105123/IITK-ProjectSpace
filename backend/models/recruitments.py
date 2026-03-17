@@ -53,6 +53,11 @@ class RecruitmentBase(SQLModel):
 
 class Recruitment(RecruitmentBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    
+    creator_id: uuid.UUID = Field(foreign_key="user.id", ondelete="CASCADE")
+    creator: Optional["User"] = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Recruitment.creator_id]", "lazy": "joined"}
+    )
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

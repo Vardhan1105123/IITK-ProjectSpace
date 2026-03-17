@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import "./postCreationForm.css";
-import "../profilePage/ProfilePage.css"
+import { getToken } from "@/lib/token"
+import { createProject } from "@/lib/projectApi";
+import { createRecruitment } from "@/lib/recruitmentApi";
 
 type PostType = "Project" | "Recruitment";
 
@@ -19,66 +22,67 @@ interface LinkEntry {
 }
 
 export default function PostCreationForm() {
-  const [postType, setPostType] = useState<PostType>("Project");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"Markdown" | "Plain-Text">("Markdown");
+  const router = useRouter();
 
-  // Project fields
-  const [title, setTitle] = useState("");
-  const [summary, setSummary] = useState("");
+  const [postType, setPostType]       = useState<PostType>("Project");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [activeTab, setActiveTab]     = useState<"Markdown" | "Plain-Text">("Markdown");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError]   = useState<string | null>(null);
+
+  // Shared fields
+  const [title, setTitle]     = useState("");
   const [details, setDetails] = useState("");
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [links, setLinks] = useState<LinkEntry[]>([{ id: "1", value: "" }]);
-  const [teamMembers, setTeamMembers] = useState("");
+  const [tags, setTags]       = useState<Tag[]>([]);
+  const [links, setLinks]     = useState<LinkEntry[]>([{ id: "1", value: "" }]);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
+  // Project-only fields
+  const [summary, setSummary]         = useState("");
+  const [teamMembers, setTeamMembers] = useState("");
+
   // Recruitment-only fields
-  const [prerequisites, setPrerequisites] = useState<Tag[]>([]);
-  const [fellowRecruiters, setFellowRecruiters] = useState("");
-  const [applicantCategories, setApplicantCategories] = useState<Tag[]>([]);
+  const [prerequisites, setPrerequisites]           = useState<Tag[]>([]);
+  const [allowedDesignations, setAllowedDesignations] = useState<Tag[]>([]);
+  const [allowedDepartments, setAllowedDepartments]   = useState<Tag[]>([]);
+  const [fellowRecruiters, setFellowRecruiters]       = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+  if (!getToken()) {
+    router.replace("/auth");
+  }
+}, []);
+
+  // Helpers
   const handleTypeSelect = (type: PostType) => {
     setPostType(type);
     setDropdownOpen(false);
   };
 
-  const addTag = () => {
-    const label = prompt("Enter tag:");
+  const makeAdder = (setter: React.Dispatch<React.SetStateAction<Tag[]>>, promptText: string) => () => {
+    const label = prompt(promptText);
     if (label?.trim())
-      setTags((prev) => [...prev, { id: Date.now().toString(), label: label.trim() }]);
+      setter((prev) => [...prev, { id: Date.now().toString(), label: label.trim() }]);
   };
 
-  const removeTag = (id: string) => setTags((prev) => prev.filter((t) => t.id !== id));
+  const makeRemover = (setter: React.Dispatch<React.SetStateAction<Tag[]>>) => (id: string) =>
+    setter((prev) => prev.filter((t) => t.id !== id));
 
-  const addPrerequisite = () => {
-    const label = prompt("Enter prerequisite:");
-    if (label?.trim())
-      setPrerequisites((prev) => [...prev, { id: Date.now().toString(), label: label.trim() }]);
-  };
-
-  const removePrerequisite = (id: string) =>
-    setPrerequisites((prev) => prev.filter((t) => t.id !== id));
-
-  const addCategory = () => {
-    const label = prompt("Enter applicant category:");
-    if (label?.trim())
-      setApplicantCategories((prev) => [
-        ...prev,
-        { id: Date.now().toString(), label: label.trim() },
-      ]);
-  };
-
-  const removeCategory = (id: string) =>
-    setApplicantCategories((prev) => prev.filter((t) => t.id !== id));
+  const addTag          = makeAdder(setTags,                 "Enter domain tag:");
+  const removeTag       = makeRemover(setTags);
+  const addPrerequisite = makeAdder(setPrerequisites,        "Enter prerequisite:");
+  const removePrerequisite = makeRemover(setPrerequisites);
+  const addDesignation  = makeAdder(setAllowedDesignations,  "Enter allowed designation (e.g. Undergraduate Student, Ph.D Scholar):");
+  const removeDesignation = makeRemover(setAllowedDesignations);
+  const addDepartment   = makeAdder(setAllowedDepartments,   "Enter allowed department (e.g. CSE, EE):");
+  const removeDepartment = makeRemover(setAllowedDepartments);
 
   const addLink = () =>
     setLinks((prev) => [...prev, { id: Date.now().toString(), value: "" }]);
-
   const updateLink = (id: string, value: string) =>
     setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, value } : l)));
-
   const removeLink = (id: string) =>
     setLinks((prev) => prev.filter((l) => l.id !== id));
 
@@ -86,14 +90,91 @@ export default function PostCreationForm() {
     e.preventDefault();
     setUploadedFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files)]);
   };
-
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files)
       setUploadedFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
   };
-
   const removeFile = (index: number) =>
     setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+
+  // Submit
+  const handleSubmit = async () => {
+    setSubmitError(null);
+
+    // Basic validation
+    if (!title.trim()) return setSubmitError("Please enter a title.");
+    if (!details.trim()) return setSubmitError("Please enter the details.");
+    if (postType === "Project" && !summary.trim()) return setSubmitError("Please enter a summary.");
+
+    setIsSubmitting(true);
+    try {
+      const descriptionFormat = activeTab === "Markdown" ? "markdown" : "plain-text";
+      const cleanLinks = links.map((l) => l.value).filter(Boolean);
+
+      // TODO: uploadedFiles need to be uploaded to a CDN first to get URLs.
+      // For now media_urls is sent as empty until file upload is implemented.
+      const media_urls: string[] = [];
+
+      if (postType === "Project") {
+        const created = await createProject({
+          title: title.trim(),
+          summary: summary.trim(),
+          description: details.trim(),
+          description_format: descriptionFormat,
+          domains: tags.map((t) => t.label),
+          links: cleanLinks,
+          media_urls,
+        });
+        router.push(`/projectPage/${created.id}`);
+
+      } else {
+        const created = await createRecruitment({
+          title: title.trim(),
+          description: details.trim(),
+          description_format: descriptionFormat,
+          domains: tags.map((t) => t.label),
+          prerequisites: prerequisites.map((t) => t.label),
+          allowed_designations: allowedDesignations.map((t) => t.label),
+          allowed_departments: allowedDepartments.map((t) => t.label),
+          links: cleanLinks,
+          media_urls,
+          status: "Open", // always Open on creation
+        });
+        router.push(`/recruitmentPage/${created.id}`);
+      }
+
+    } catch (err: any) {
+      if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
+      setSubmitError(err.message || "Failed to publish. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Tag Block Component
+
+  const TagBlock = ({
+    tags: blockTags, onAdd, onRemove, addLabel,
+  }: {
+    tags: Tag[];
+    onAdd: () => void;
+    onRemove: (id: string) => void;
+    addLabel: string;
+  }) => (
+    <>
+      <div className="pcf-tags-row">
+        {blockTags.map((t) => (
+          <span key={t.id} className="pcf-tag">
+            {t.label}
+            <button className="pcf-tag-remove" onClick={() => onRemove(t.id)}>×</button>
+          </span>
+        ))}
+      </div>
+      <button className="pcf-add-btn" onClick={onAdd}>
+        <span className="pcf-add-icon">+</span> {addLabel}
+      </button>
+    </>
+  );
 
   return (
     <div className="app-shell">
@@ -109,7 +190,7 @@ export default function PostCreationForm() {
 
           <div className="pcf-form-container">
 
-            {/* ── Section 1 ── */}
+            {/* Section 1 */}
             <section className="pcf-card">
               <div className="pcf-card-header">
                 <div>
@@ -121,16 +202,10 @@ export default function PostCreationForm() {
 
                 {/* Type dropdown */}
                 <div className="pcf-dropdown-wrapper">
-                  <button
-                    className="pcf-dropdown-btn"
-                    onClick={() => setDropdownOpen((v) => !v)}
-                  >
+                  <button className="pcf-dropdown-btn" onClick={() => setDropdownOpen((v) => !v)}>
                     <span>{postType}</span>
-                    <svg
-                      width="16" height="16" viewBox="0 0 24 24"
-                      fill="none" stroke="currentColor" strokeWidth="2"
-                      className={`pcf-chevron${dropdownOpen ? " pcf-chevron--open" : ""}`}
-                    >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                      className={`pcf-chevron${dropdownOpen ? " pcf-chevron--open" : ""}`}>
                       <polyline points="6 9 12 15 18 9" />
                     </svg>
                   </button>
@@ -154,9 +229,7 @@ export default function PostCreationForm() {
               <div className="pcf-field">
                 <label className="pcf-label">
                   Title
-                  <span className="pcf-label-hint">
-                    (This will be displayed everywhere, make sure it is catchy :))
-                  </span>
+                  <span className="pcf-label-hint">(This will be displayed everywhere, make sure it is catchy :))</span>
                 </label>
                 <input
                   className="pcf-input"
@@ -166,14 +239,13 @@ export default function PostCreationForm() {
                 />
               </div>
 
-              {/* Summary – Project only */}
+              {/* Summary — Project only */}
               {postType === "Project" && (
                 <div className="pcf-field">
                   <label className="pcf-label">
                     Summary
                     <span className="pcf-label-hint">
-                      (A concise summary of your work. This will be used on project posts on the
-                      discover page and search results.)
+                      (A concise summary of your work. This will be used on project posts on the discover page and search results.)
                     </span>
                   </label>
                   <textarea
@@ -209,56 +281,31 @@ export default function PostCreationForm() {
                   className="pcf-textarea pcf-textarea--tall"
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
-                  placeholder={
-                    activeTab === "Markdown" ? "# Your markdown here..." : "Plain text details..."
-                  }
                 />
               </div>
 
-              {/* Field and Domains */}
+              {/* Domain Tags */}
               <div className="pcf-field">
                 <label className="pcf-label">
-                  Field and Domains
-                  <span className="pcf-label-hint">(Add Tags relevant to your project domain.)</span>
+                  Domains / Tags
+                  <span className="pcf-label-hint">(Add tags that best describe the domains this post falls under.)</span>
                 </label>
-                <div className="pcf-tags-row">
-                  {tags.map((tag) => (
-                    <span key={tag.id} className="pcf-tag">
-                      {tag.label}
-                      <button className="pcf-tag-remove" onClick={() => removeTag(tag.id)}>×</button>
-                    </span>
-                  ))}
-                </div>
-                <button className="pcf-add-btn" onClick={addTag}>
-                  <span className="pcf-add-icon">+</span> Add Tags
-                </button>
+                <TagBlock tags={tags} onAdd={addTag} onRemove={removeTag} addLabel="Add Tag" />
               </div>
 
-              {/* Prerequisites – Recruitment only */}
+              {/* Prerequisites — Recruitment only */}
               {postType === "Recruitment" && (
                 <div className="pcf-field">
                   <label className="pcf-label">
                     Prerequisites
-                    <span className="pcf-label-hint">
-                      (Add prerequisites an applicant must have completed to be a part of your project.)
-                    </span>
+                    <span className="pcf-label-hint">(Add skills or technologies applicants should be familiar with.)</span>
                   </label>
-                  <div className="pcf-tags-row">
-                    {prerequisites.map((p) => (
-                      <span key={p.id} className="pcf-tag">
-                        {p.label}
-                        <button className="pcf-tag-remove" onClick={() => removePrerequisite(p.id)}>×</button>
-                      </span>
-                    ))}
-                  </div>
-                  <button className="pcf-add-btn" onClick={addPrerequisite}>
-                    <span className="pcf-add-icon">+</span> Add Prerequisites
-                  </button>
+                  <TagBlock tags={prerequisites} onAdd={addPrerequisite} onRemove={removePrerequisite} addLabel="Add Prerequisite" />
                 </div>
               )}
             </section>
 
-            {/* ── Section 2 ── */}
+            {/* Section 2 */}
             <section className="pcf-card">
               <div className="pcf-card-header">
                 <div>
@@ -292,8 +339,7 @@ export default function PostCreationForm() {
                   </svg>
                   <span className="pcf-upload-title">Upload Files from your Computer</span>
                   <span className="pcf-upload-hint">
-                    Upload images, videos or PDFs related to your{" "}
-                    {postType === "Project" ? "work" : "recruitment"}
+                    Upload images, videos or PDFs related to your {postType === "Project" ? "work" : "recruitment"}
                   </span>
                   <input
                     ref={fileInputRef}
@@ -329,11 +375,7 @@ export default function PostCreationForm() {
                 {links.map((link) => (
                   <div key={link.id} className="pcf-link-row">
                     <div className="pcf-link-input-wrapper">
-                      <svg
-                        width="16" height="16" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" strokeWidth="2"
-                        className="pcf-link-icon"
-                      >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="pcf-link-icon">
                         <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
                         <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                       </svg>
@@ -355,7 +397,7 @@ export default function PostCreationForm() {
               </div>
             </section>
 
-            {/* ── Section 3 ── */}
+            {/* Section 3 */}
             <section className="pcf-card">
               <div className="pcf-card-header">
                 <div>
@@ -366,13 +408,35 @@ export default function PostCreationForm() {
                 </div>
               </div>
 
+              {/* Allowed Designations — Recruitment only */}
+              {postType === "Recruitment" && (
+                <div className="pcf-field">
+                  <label className="pcf-label">
+                    Allowed Designations
+                    <span className="pcf-label-hint">(Only applicants with these designations will be able to apply.)</span>
+                  </label>
+                  <TagBlock tags={allowedDesignations} onAdd={addDesignation} onRemove={removeDesignation} addLabel="Add Designation" />
+                </div>
+              )}
+
+              {/* Allowed Departments — Recruitment only */}
+              {postType === "Recruitment" && (
+                <div className="pcf-field">
+                  <label className="pcf-label">
+                    Allowed Departments
+                    <span className="pcf-label-hint">(Only applicants from these departments will be able to apply.)</span>
+                  </label>
+                  <TagBlock tags={allowedDepartments} onAdd={addDepartment} onRemove={removeDepartment} addLabel="Add Department" />
+                </div>
+              )}
+
               {/* Team Members / Fellow Recruiters */}
               <div className="pcf-field">
                 <label className="pcf-label">
                   {postType === "Project" ? "Add Team Members" : "Add Fellow Recruiters"}
                   <span className="pcf-label-hint">
-                    (Verification request will be sent to users you add. Only users who verify will be
-                    displayed on the {postType === "Project" ? "project" : "recruitment"} page.{" "}
+                    (Verification request will be sent to users you add. Only users who verify will be displayed on the{" "}
+                    {postType === "Project" ? "project" : "recruitment"} page.{" "}
                     {postType === "Project"
                       ? "Project post will also be added on verified user's profile."
                       : "Recruitment post will also be added on verified user's profile."})
@@ -382,11 +446,7 @@ export default function PostCreationForm() {
                   <span className="pcf-at-icon">@</span>
                   <input
                     className="pcf-input pcf-input--search"
-                    placeholder={
-                      postType === "Project"
-                        ? "Search for your team members"
-                        : "Search for fellow recruiters"
-                    }
+                    placeholder={postType === "Project" ? "Search for your team members" : "Search for fellow recruiters"}
                     value={postType === "Project" ? teamMembers : fellowRecruiters}
                     onChange={(e) =>
                       postType === "Project"
@@ -396,35 +456,19 @@ export default function PostCreationForm() {
                   />
                 </div>
               </div>
-
-              {/* Applicant Category – Recruitment only */}
-              {postType === "Recruitment" && (
-                <div className="pcf-field">
-                  <label className="pcf-label">
-                    Specify Applicant Category
-                    <span className="pcf-label-hint">
-                      (Only users of the specified categories will be able to apply to the projects.)
-                    </span>
-                  </label>
-                  <div className="pcf-tags-row">
-                    {applicantCategories.map((c) => (
-                      <span key={c.id} className="pcf-tag">
-                        {c.label}
-                        <button className="pcf-tag-remove" onClick={() => removeCategory(c.id)}>×</button>
-                      </span>
-                    ))}
-                  </div>
-                  <button className="pcf-add-btn" onClick={addCategory}>
-                    <span className="pcf-add-icon">+</span> Add Category
-                  </button>
-                </div>
-              )}
             </section>
+
+            {/* Error message */}
+            {submitError && (
+              <p style={{ color: "#a53d2a", fontSize: 13, textAlign: "right" }}>
+                {submitError}
+              </p>
+            )}
 
             {/* Submit */}
             <div className="pcf-submit-row">
-              <button className="pcf-submit-btn">
-                Publish {postType}
+              <button className="pcf-submit-btn" onClick={handleSubmit} disabled={isSubmitting}>
+                {isSubmitting ? "Publishing..." : `Publish ${postType}`}
               </button>
             </div>
 

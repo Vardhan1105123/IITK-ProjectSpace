@@ -41,7 +41,6 @@ class User(SQLModel, table=True):
 
     # Auth flags
     is_active: bool = Field(default=False)
-    is_admin: bool = Field(default=False)
 
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)

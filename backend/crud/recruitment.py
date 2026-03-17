@@ -9,6 +9,7 @@ from typing import Sequence
 
 def create_recruitment(session: Session, recruitment_create: RecruitmentCreate, creator_id: uuid.UUID) -> Recruitment:
     db_recruitment = Recruitment.model_validate(recruitment_create)
+    db_recruitment.creator_id = creator_id
     
     session.add(db_recruitment)
     session.commit()
@@ -24,8 +25,8 @@ def create_recruitment(session: Session, recruitment_create: RecruitmentCreate, 
 def get_recruitment_by_id(session: Session, recruitment_id: uuid.UUID) -> Recruitment | None:
     return session.get(Recruitment, recruitment_id)
 
-def get_all_recruitments(session: Session, skip: int = 0, limit: int = 100) -> Sequence[Recruitment]:
-    statement = select(Recruitment).offset(skip).limit(limit)
+def get_all_recruitments(session: Session, skip: int = 0, limit: int = 10) -> Sequence[Recruitment]:
+    statement = select(Recruitment).order_by(Recruitment.created_at.desc()).offset(skip).limit(limit)
     return session.exec(statement).all()
 
 def update_recruitment(session: Session, db_recruitment: Recruitment, recruitment_update: RecruitmentUpdate) -> Recruitment:
