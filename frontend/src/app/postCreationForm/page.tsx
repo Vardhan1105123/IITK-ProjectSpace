@@ -1,15 +1,16 @@
 "use client";
 
+import "./postCreationForm.css";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown"
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import "./postCreationForm.css";
 import { getToken } from "@/lib/token"
 import { createProject, uploadProjectMedia } from "@/lib/projectApi";
 import { createRecruitment, uploadRecruitmentMedia } from "@/lib/recruitmentApi";
 import { UserSummary } from "@/lib/projectApi";
+import CreatableSelect from "react-select/creatable";
 
 import skillsData from "@/data/seed_skills.json"
 
@@ -56,7 +57,7 @@ export default function PostCreationForm() {
 
   const SKILLS = skillsData;
   const DEPARTMENTS = ["AE", "BSBE", "CHE", "CHM", "CE", "CGS", "CSE", "DES", "ES", "ECO", "EE", "HSS", "IS", "MSE", "MTH", "ME", "NET", "DOMS", "PHY", "SPASE", "SDS", "SEE"];
-  const DESIGNATIONS = ["UG_STUDENT", "PG_STUDENT", "PHD", "POSTDOC", "ASST_PROF", "ASSCT_PROF", "PROF", "HAG_PROF"];
+  const DESIGNATIONS = ["UG_STUDENT", "PG_STUDENT", "PHD", "POSTDOC"];
 
   useEffect(() => {
   if (!getToken()) {
@@ -123,14 +124,25 @@ export default function PostCreationForm() {
   const makeRemover = (setter: React.Dispatch<React.SetStateAction<Tag[]>>) => (id: string) =>
     setter((prev) => prev.filter((t) => t.id !== id));
 
-  const addTag          = makeAdder(setTags,                 "Enter domain tag:");
-  const removeTag       = makeRemover(setTags);
-  const addPrerequisite = makeAdder(setPrerequisites,        "Enter prerequisite:");
-  const removePrerequisite = makeRemover(setPrerequisites);
-  const addDesignation  = makeAdder(setAllowedDesignations,  "Enter allowed designation (e.g. Undergraduate Student, Ph.D Scholar):");
-  const removeDesignation = makeRemover(setAllowedDesignations);
-  const addDepartment   = makeAdder(setAllowedDepartments,   "Enter allowed department (e.g. CSE, EE):");
-  const removeDepartment = makeRemover(setAllowedDepartments);
+  const handleTagsChange = (selectedOptions: any) => {
+    const newTags = selectedOptions ? selectedOptions.map((opt: any) => ({ id: opt.value, label: opt.value })) : [];
+    setTags(newTags);
+  };
+
+  const handlePrerequisitesChange = (selectedOptions: any) => {
+    const newPrereqs = selectedOptions ? selectedOptions.map((opt: any) => ({ id: opt.value, label: opt.value })) : [];
+    setPrerequisites(newPrereqs);
+  };
+
+  const handleDesignationsChange = (selectedOptions: any) => {
+    const newDesignations = selectedOptions ? selectedOptions.map((opt: any) => ({ id: opt.value, label: opt.value })) : [];
+    setAllowedDesignations(newDesignations);
+  };
+
+  const handleDepartmentsChange = (selectedOptions: any) => {
+    const newDepartments = selectedOptions ? selectedOptions.map((opt: any) => ({ id: opt.value, label: opt.value })) : [];
+    setAllowedDepartments(newDepartments);
+  };
 
   const addLink = () =>
     setLinks((prev) => [...prev, { id: Date.now().toString(), value: "" }]);
@@ -371,7 +383,16 @@ export default function PostCreationForm() {
                   Domains / Tags
                   <span className="pcf-label-hint">(Add tags that best describe the domains this post falls under.)</span>
                 </label>
-                <TagBlock tags={tags} onAdd={addTag} onRemove={removeTag} addLabel="Add Tag" />
+                <CreatableSelect
+                  instanceId="post-domains-tags"
+                  isMulti
+                  options={SKILLS}
+                  value={tags.map((tag) => ({ value: tag.label, label: tag.label }))}
+                  onChange={handleTagsChange}
+                  placeholder="Search or type to create a domain/tag..."
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                />
               </div>
 
               {/* Prerequisites — Recruitment only */}
@@ -381,7 +402,16 @@ export default function PostCreationForm() {
                     Prerequisites
                     <span className="pcf-label-hint">(Add skills or technologies applicants should be familiar with.)</span>
                   </label>
-                  <TagBlock tags={prerequisites} onAdd={addPrerequisite} onRemove={removePrerequisite} addLabel="Add Prerequisite" />
+                  <CreatableSelect
+                    instanceId="post-prerequisites"
+                    isMulti
+                    options={SKILLS}
+                    value={prerequisites.map((req) => ({ value: req.label, label: req.label }))}
+                    onChange={handlePrerequisitesChange}
+                    placeholder="Search or type to create a prerequisite..."
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                  />
                 </div>
               )}
             </section>
@@ -496,7 +526,16 @@ export default function PostCreationForm() {
                     Allowed Designations
                     <span className="pcf-label-hint">(Only applicants with these designations will be able to apply.)</span>
                   </label>
-                  <TagBlock tags={allowedDesignations} onAdd={addDesignation} onRemove={removeDesignation} addLabel="Add Designation" />
+                  <CreatableSelect
+                    instanceId="post-allowed-designations"
+                    isMulti
+                    options={DESIGNATIONS.map(d => ({ value: d, label: d }))}
+                    value={allowedDesignations.map((tag) => ({ value: tag.label, label: tag.label }))}
+                    onChange={handleDesignationsChange}
+                    placeholder="Select or type to create a designation..."
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                  />
                 </div>
               )}
 
@@ -507,7 +546,16 @@ export default function PostCreationForm() {
                     Allowed Departments
                     <span className="pcf-label-hint">(Only applicants from these departments will be able to apply.)</span>
                   </label>
-                  <TagBlock tags={allowedDepartments} onAdd={addDepartment} onRemove={removeDepartment} addLabel="Add Department" />
+                  <CreatableSelect
+                    instanceId="post-allowed-departments"
+                    isMulti
+                    options={DEPARTMENTS.map(d => ({ value: d, label: d }))}
+                    value={allowedDepartments.map((tag) => ({ value: tag.label, label: tag.label }))}
+                    onChange={handleDepartmentsChange}
+                    placeholder="Select or type to create a department..."
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                  />
                 </div>
               )}
 

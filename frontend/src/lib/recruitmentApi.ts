@@ -89,6 +89,7 @@ export interface RecruitmentSummary {
   status: "Open" | "Closed";
   created_at: string;
   recruiters: UserSummary[];
+  media_urls?: string[];
 
   creator_id: string;
   creator_name: string;
@@ -116,13 +117,13 @@ export async function createRecruitment(payload: RecruitmentCreate): Promise<Rec
   return data;
 }
 
-export async function uploadRecruitmentMedia(projectId: string, files: File[]): Promise<void> {
-  // Since our backend accepts one file per request, we loop through them
-  await Promise.all(files.map(async (file) => {
+export async function uploadRecruitmentMedia(recruitmentId: string, files: File[]): Promise<void> {
+  // Upload sequentially to prevent race conditions on backend array update
+  for (const file of files) {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetch(`${API}/${projectId}/upload`, {
+    const res = await fetch(`${API}/${recruitmentId}/upload`, {
       method: "POST",
       // Notice: Do NOT set "Content-Type" manually here! 
       // The browser automatically sets it to multipart/form-data with the correct boundary
@@ -131,7 +132,7 @@ export async function uploadRecruitmentMedia(projectId: string, files: File[]): 
     });
     
     if (!res.ok) throw new Error("Failed to upload a file");
-  }));
+  }
 }
 
 export async function getRecruitment(recruitmentId: string): Promise<RecruitmentPublic> {

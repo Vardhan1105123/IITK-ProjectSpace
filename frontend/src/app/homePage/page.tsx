@@ -69,18 +69,21 @@ function timeAgo(isoDate: string): string {
   return new Date(isoDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const getFullUrl = (url?: string) => url ? (url.startsWith("http") ? url : `${API_BASE_URL}${url}`) : undefined;
+
 function mapProjectToFeedItem(p: ProjectSummary): ProjectFeedItem {
   return {
     id: p.id,
     title: p.title,
     description: p.summary,
-    media_urls: [],
+    media_urls: p.media_urls ? p.media_urls.map(url => getFullUrl(url) as string) : [],
     creator_name: p.creator_name,
-    creator_avatar_url: p.creator_avatar_url ?? undefined,
+    creator_avatar_url: getFullUrl(p.creator_avatar_url ?? undefined),
     institution: "IIT Kanpur",
     time_ago: timeAgo(p.created_at),
     other_count: 0,
-    team_members: [],
+    team_members: p.team_members?.map(m => ({ id: m.id, name: m.fullname, avatar_url: getFullUrl(m.profile_picture_url) })) || [],
   };
 }
 
@@ -89,14 +92,14 @@ function mapRecruitmentToFeedItem(r: RecruitmentSummary): RecruitmentFeedItem {
     id: r.id,
     title: r.title,
     description: r.domains.join(", ") || "Open recruitment",
-    media_urls: [],
+    media_urls: r.media_urls ? r.media_urls.map(url => getFullUrl(url) as string) : [],
     status: r.status,
     creator_name: r.creator_name,
-    creator_avatar_url: r.creator_avatar_url ?? undefined,
+    creator_avatar_url: getFullUrl(r.creator_avatar_url ?? undefined),
     institution: "IIT Kanpur",
     time_ago: timeAgo(r.created_at),
     other_count: 0,
-    team_members: [],
+    team_members: r.recruiters?.map(m => ({ id: m.id, name: m.fullname, avatar_url: getFullUrl(m.profile_picture_url) })) || [],
   };
 }
 

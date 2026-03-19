@@ -8,6 +8,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { getProject, ProjectPublic } from "@/lib/projectApi";
 import { fetchMyProfile } from "@/lib/profileApi";
 import { getRepresentativeString } from "@/lib/formatTeam";
+import ReactMarkdown from "react-markdown";
 
 /* Types */
 export interface TeamMember {
@@ -52,6 +53,9 @@ function formatDate(iso: string): string {
   }
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const getFullUrl = (url?: string) => url ? (url.startsWith("http") ? url : `${API_BASE_URL}${url}`) : undefined;
+
 function mapToProject(p: ProjectPublic): Project {
   return {
     id: p.id,
@@ -61,14 +65,14 @@ function mapToProject(p: ProjectPublic): Project {
     description_format: p.description_format,
     domains: p.domains,
     links: p.links,
-    media_urls: p.media_urls,
+    media_urls: p.media_urls ? p.media_urls.map(url => getFullUrl(url) as string) : [],
     created_at: p.created_at,
     updated_at: p.updated_at,
     team_members: p.team_members.map((m) => ({
       id: m.id,
       name: m.fullname,
       designation: m.designation,
-      avatar_url: m.profile_picture_url ?? undefined,
+      avatar_url: getFullUrl(m.profile_picture_url ?? undefined),
     })),
   };
 }
@@ -96,13 +100,13 @@ const TeamChip: React.FC<{ member: TeamMember; colorIndex: number }> = ({ member
 /* Description */
 const DescriptionBlock: React.FC<{ text: string; format: string }> = ({ text, format }) => {
   if (format === "markdown") {
-    const html = text
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      .replace(/\n/g, "<br />");
-    return <p className="project-description" dangerouslySetInnerHTML={{ __html: html }} />;
+    return (
+      <div className="markdown-body">
+        <ReactMarkdown>{text}</ReactMarkdown>
+      </div>
+    );
   }
-  return <p className="project-description">{text}</p>;
+  return <p className="project-description" style={{ whiteSpace: "pre-wrap" }}>{text}</p>;
 };
 
 /* Calendar Icon */

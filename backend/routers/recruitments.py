@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 from typing import List
 import uuid
@@ -223,7 +224,7 @@ def upload_recruitment_media(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    url_path = f"/{file_path}".replace("\\", "/")
+    url_path = f"/recruitments/{recruitment_id}/media/{file.filename}"
 
     updated_media = list(recruitment.media_urls) if recruitment.media_urls else []
     updated_media.append(url_path)
@@ -234,3 +235,11 @@ def upload_recruitment_media(
     db.refresh(recruitment)
     recruitment.creator = db.get(User, recruitment.creator_id)
     return recruitment
+
+
+@router.get("/{recruitment_id}/media/{filename}")
+def get_recruitment_media(recruitment_id: uuid.UUID, filename: str):
+    file_path = os.path.join("uploads", "Recruitments", str(recruitment_id), filename)
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)

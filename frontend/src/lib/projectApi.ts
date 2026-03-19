@@ -67,6 +67,7 @@ export interface ProjectSummary {
   domains: string[];
   created_at: string;
   team_members: UserSummary[];
+  media_urls?: string[];
 
   creator_id: string;
   creator_name: string;
@@ -86,8 +87,8 @@ export async function createProject(payload: ProjectCreate): Promise<ProjectPubl
 }
 
 export async function uploadProjectMedia(projectId: string, files: File[]): Promise<void> {
-  // Since our backend accepts one file per request, we loop through them
-  await Promise.all(files.map(async (file) => {
+  // Upload sequentially to prevent race conditions on backend array update
+  for (const file of files) {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -100,7 +101,7 @@ export async function uploadProjectMedia(projectId: string, files: File[]): Prom
     });
     
     if (!res.ok) throw new Error("Failed to upload a file");
-  }));
+  }
 }
 
 export async function getProject(projectId: string): Promise<ProjectPublic> {

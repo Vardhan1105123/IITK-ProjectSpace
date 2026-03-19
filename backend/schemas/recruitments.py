@@ -162,6 +162,7 @@ class RecruitmentSummary(BaseModel):
     status: str
     created_at: datetime
     recruiters: List[UserSummary] = []
+    media_urls: List[str] = []
     creator_id: uuid.UUID
 
     @computed_field

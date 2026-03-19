@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 from typing import List
 import uuid
@@ -170,8 +171,8 @@ def upload_project_media(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # Format URL and update the database array
-    url_path = f"/{file_path}".replace("\\", "/")
+    # Format URL to point to our new media serving endpoint
+    url_path = f"/projects/{project_id}/media/{file.filename}"
 
     # In SQLModel/SQLAlchemy, you must create a new list to trigger the DB update for arrays
     updated_media = list(project.media_urls) if project.media_urls else []
@@ -183,3 +184,11 @@ def upload_project_media(
     db.refresh(project)
     project.creator = db.get(User, project.creator_id)
     return project
+
+
+@router.get("/{project_id}/media/{filename}")
+def get_project_media(project_id: uuid.UUID, filename: str):
+    file_path = os.path.join("uploads", "Projects", str(project_id), filename)
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)

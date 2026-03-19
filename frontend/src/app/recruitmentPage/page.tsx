@@ -9,6 +9,7 @@ import { getRecruitment, applyToRecruitment, RecruitmentPublic } from "@/lib/rec
 import { fetchMyProfile } from "@/lib/profileApi";
 import { getRepresentativeString } from "@/lib/formatTeam";
 import { getRouteRegex } from "next/dist/shared/lib/router/utils/route-regex";
+import ReactMarkdown from "react-markdown";
 
 /* Types */
 export interface Recruiter {
@@ -55,6 +56,9 @@ function formatDate(iso: string): string {
   }
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const getFullUrl = (url?: string) => url ? (url.startsWith("http") ? url : `${API_BASE_URL}${url}`) : undefined;
+
 function mapToRecruitment(r: RecruitmentPublic): Recruitment {
   return {
     id: r.id,
@@ -72,7 +76,7 @@ function mapToRecruitment(r: RecruitmentPublic): Recruitment {
       id: rec.id,
       name: rec.fullname,
       designation: rec.designation,
-      avatar_url: rec.profile_picture_url ?? undefined,
+      avatar_url: getFullUrl(rec.profile_picture_url ?? undefined),
     })),
     application_count: r.applications.length,
   };
@@ -81,13 +85,13 @@ function mapToRecruitment(r: RecruitmentPublic): Recruitment {
 /* Description */
 const DescriptionBlock: React.FC<{ text: string; format: string }> = ({ text, format }) => {
   if (format === "markdown") {
-    const html = text
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      .replace(/\n/g, "<br />");
-    return <p className="recruit-description" dangerouslySetInnerHTML={{ __html: html }} />;
+    return (
+      <div className="markdown-body">
+        <ReactMarkdown>{text}</ReactMarkdown>
+      </div>
+    );
   }
-  return <p className="recruit-description">{text}</p>;
+  return <p className="recruit-description" style={{ whiteSpace: "pre-wrap" }}>{text}</p>;
 };
 
 /* Icons */

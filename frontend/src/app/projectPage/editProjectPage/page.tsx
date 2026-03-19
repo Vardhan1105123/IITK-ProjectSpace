@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
-import { getProject, updateProject, deleteProject, addProjectMember, removeProjectMember } from "@/lib/projectApi";
+import { getProject, updateProject, deleteProject, addProjectMember, removeProjectMember, uploadProjectMedia } from "@/lib/projectApi";
 import { searchUsers } from "@/lib/profileApi";
 import { UserSummary } from "@/lib/projectApi";
 import ConfirmPopUp from "../../components/confirmPopUp";
@@ -186,6 +186,11 @@ export default function EditProjectPage() {
         links:              links.map((l) => l.value).filter(Boolean),
         media_urls:         existingMediaUrls,
       });
+
+      // Upload any new media files
+      if (uploadedFiles.length > 0) {
+        await uploadProjectMedia(projectId, uploadedFiles);
+      }
 
       // 2. Diff team members and apply adds/removes
       const currentIds  = selectedUsers.map((u) => u.id);
