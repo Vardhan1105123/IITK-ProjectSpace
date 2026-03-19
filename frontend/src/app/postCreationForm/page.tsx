@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown"
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import "./postCreationForm.css";
@@ -339,11 +340,29 @@ export default function PostCreationForm() {
                     </button>
                   ))}
                 </div>
+                {activeTab === "Markdown" ? (
+                <div className="pcf-split-pane">
+                  <textarea
+                    className="pcf-textarea pcf-textarea--tall pcf-split-editor"
+                    value={details}
+                    onChange={(e) => setDetails(e.target.value)}
+                    placeholder="Write markdown here..."
+                  />
+                  <div className="pcf-split-preview">
+                    {details.trim()
+                      ? <ReactMarkdown>{details}</ReactMarkdown>
+                      : <span className="pcf-preview-placeholder">Preview will appear here...</span>
+                    }
+                  </div>
+                </div>
+              ) : (
                 <textarea
                   className="pcf-textarea pcf-textarea--tall"
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
+                  placeholder="Write your description here..."
                 />
+              )}
               </div>
 
               {/* Domain Tags */}

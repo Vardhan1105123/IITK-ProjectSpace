@@ -4,6 +4,7 @@ import "./editProjectPage";
 
 import { useState, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import { getProject, updateProject, deleteProject } from "@/lib/projectApi";
@@ -233,11 +234,29 @@ export default function EditProjectPage() {
                         </button>
                       ))}
                     </div>
+                    {activeTab === "Markdown" ? (
+                    <div className="pcf-split-pane">
+                      <textarea
+                        className="pcf-textarea pcf-textarea--tall pcf-split-editor"
+                        value={details}
+                        onChange={(e) => setDetails(e.target.value)}
+                        placeholder="Write markdown here..."
+                      />
+                      <div className="pcf-split-preview">
+                        {details.trim()
+                          ? <ReactMarkdown>{details}</ReactMarkdown>
+                          : <span className="pcf-preview-placeholder">Preview will appear here...</span>
+                        }
+                      </div>
+                    </div>
+                  ) : (
                     <textarea
                       className="pcf-textarea pcf-textarea--tall"
                       value={details}
                       onChange={(e) => setDetails(e.target.value)}
+                      placeholder="Write your description here..."
                     />
+                  )}
                   </div>
 
                   {/* Domain Tags */}
