@@ -1,13 +1,13 @@
-/* App Shell */
+/* Page wrapper */
 .app-shell {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: var(--bg-page);
-  font-family: var(--font-montserrat), sans-serif;
+  background-color: var(--bg-page);
 }
 
+/* Sidebar plus Main contnent wrapper */
 .app-body {
   flex: 1;
   display: flex;
