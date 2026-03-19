@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import "./recruitmentPage.css";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import { useParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { getRecruitment, applyToRecruitment, RecruitmentPublic } from "@/lib/recruitmentApi";
 import { fetchMyProfile } from "@/lib/profileApi";
 import { getRepresentativeString } from "@/lib/formatTeam";
@@ -127,9 +127,9 @@ const RecruitmentSkeleton = () => (
 
 /* RecruitmentPage */
 const RecruitmentPage: React.FC = () => {
-  const params        = useParams();
+  const searchParams        = useSearchParams();
   const router        = useRouter();
-  const recruitmentId = params?.id as string;
+  const recruitmentId = searchParams.get("id") as string;
 
   const [recruitment, setRecruitment]   = useState<Recruitment | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -188,10 +188,11 @@ const RecruitmentPage: React.FC = () => {
   const wasUpdated = recruitment ? recruitment.updated_at !== recruitment.created_at : false;
 
   return (
+    <Suspense>
     <div className="app-shell">
       <Header
         showEditProfile={false}
-        editHref={isRecruiter ? `/recruitmentPage/${recruitmentId}/edit` : undefined}
+        editHref={isRecruiter ? `/recruitmentPage/editRecruitmentPage?id=${recruitmentId}` : undefined}
         editLabel="Edit Recruitment"
       />
 
@@ -367,6 +368,7 @@ const RecruitmentPage: React.FC = () => {
         </main>
       </div>
     </div>
+    </Suspense>
   );
 };
 

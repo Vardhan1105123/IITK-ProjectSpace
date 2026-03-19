@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import "./projectPage.css";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import { useParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { getProject, ProjectPublic } from "@/lib/projectApi";
 import { fetchMyProfile } from "@/lib/profileApi";
 import { getRepresentativeString } from "@/lib/formatTeam";
@@ -133,9 +133,9 @@ const ProjectSkeleton = () => (
 
 /* ProjectPage */
 const ProjectPage: React.FC = () => {
-  const params    = useParams();
+  const searchParams    = useSearchParams();
   const router    = useRouter();
-  const projectId = params?.id as string;
+  const projectId = searchParams.get("id") as string;
 
   const [project, setProject]           = useState<Project | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -176,10 +176,11 @@ const ProjectPage: React.FC = () => {
   const wasUpdated = project ? project.updated_at !== project.created_at : false;
 
   return (
+    <Suspense>
     <div className="app-shell">
       <Header
         showEditProfile={false}
-        editHref={isTeamMember ? `/projectPage/${projectId}/edit` : undefined}
+        editHref={isTeamMember ? `/projectPage/editProjectPage?id=${projectId}` : undefined}
         editLabel="Edit Project"
       />
 
@@ -299,6 +300,7 @@ const ProjectPage: React.FC = () => {
         </main>
       </div>
     </div>
+    </Suspense>
   );
 };
 

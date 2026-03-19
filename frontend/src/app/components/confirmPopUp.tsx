@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
-import "./ConfirmPopUp.css";
+import "./confirmPopUp.css";
 
 type ConfirmPopUpProps = {
   heading: string;

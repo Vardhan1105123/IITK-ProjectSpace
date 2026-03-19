@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator, computed_field
+from typing import Optional, List, Any
 import uuid
 from datetime import datetime
 from core.utils import Designation
@@ -126,12 +126,25 @@ class RecruitmentPublic(RecruitmentBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
-    recruiters: List[UserSummary] = []  # list of recruiter user IDs
+    recruiters: List[UserSummary] = []
     applications: List[ApplicationPublic] = []
-
     creator_id: uuid.UUID
-    creator_name: str
-    creator_avatar_url: Optional[str] = None
+
+    @computed_field
+    @property
+    def creator_name(self) -> str:
+        creator = getattr(self, "creator", None)
+        if creator is not None:
+            return creator.fullname or ""
+        return ""
+
+    @computed_field
+    @property
+    def creator_avatar_url(self) -> Optional[str]:
+        creator = getattr(self, "creator", None)
+        if creator is not None:
+            return creator.profile_picture_url
+        return None
 
     class Config:
         from_attributes = True
@@ -148,8 +161,24 @@ class RecruitmentSummary(BaseModel):
     allowed_departments: List[str] = []
     status: str
     created_at: datetime
-
     recruiters: List[UserSummary] = []
+    creator_id: uuid.UUID
+
+    @computed_field
+    @property
+    def creator_name(self) -> str:
+        creator = getattr(self, "creator", None)
+        if creator is not None:
+            return creator.fullname or ""
+        return ""
+
+    @computed_field
+    @property
+    def creator_avatar_url(self) -> Optional[str]:
+        creator = getattr(self, "creator", None)
+        if creator is not None:
+            return creator.profile_picture_url
+        return None
 
     class Config:
         from_attributes = True

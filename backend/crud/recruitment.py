@@ -1,5 +1,6 @@
 from sqlmodel import Session, select
 from models.recruitments import Recruitment, Application, RecruitmentRecruiterLink
+from models.user import User
 from schemas.recruitments import RecruitmentCreate, RecruitmentUpdate, ApplicationCreate, ApplicationUpdate
 from datetime import datetime
 import uuid
@@ -8,8 +9,20 @@ from typing import Sequence
 ## Recruitment CRUD
 
 def create_recruitment(session: Session, recruitment_create: RecruitmentCreate, creator_id: uuid.UUID) -> Recruitment:
-    db_recruitment = Recruitment.model_validate(recruitment_create)
-    
+    db_recruitment = Recruitment(
+        title=recruitment_create.title,
+        description=recruitment_create.description,
+        description_format=recruitment_create.description_format,
+        domains=recruitment_create.domains,
+        prerequisites=recruitment_create.prerequisites,
+        allowed_designations=recruitment_create.allowed_designations,
+        allowed_departments=recruitment_create.allowed_departments,
+        links=recruitment_create.links,
+        media_urls=recruitment_create.media_urls,
+        status=recruitment_create.status,
+        creator_id=creator_id,
+    )
+
     session.add(db_recruitment)
     session.commit()
     session.refresh(db_recruitment)
@@ -26,15 +39,24 @@ def create_recruitment(session: Session, recruitment_create: RecruitmentCreate, 
 
     session.commit()
     session.refresh(db_recruitment)
+    # Explicitly load creator so the response schema can read it
+    db_recruitment.creator = session.get(User, creator_id)
 
     return db_recruitment
 
 def get_recruitment_by_id(session: Session, recruitment_id: uuid.UUID) -> Recruitment | None:
-    return session.get(Recruitment, recruitment_id)
+    recruitment = session.get(Recruitment, recruitment_id)
+    if recruitment and recruitment.creator is None:
+        recruitment.creator = session.get(User, recruitment.creator_id)
+    return recruitment
 
 def get_all_recruitments(session: Session, skip: int = 0, limit: int = 10) -> Sequence[Recruitment]:
     statement = select(Recruitment).order_by(Recruitment.created_at.desc()).offset(skip).limit(limit)
-    return session.exec(statement).all()
+    recruitments = session.exec(statement).all()
+    for r in recruitments:
+        if r.creator is None:
+            r.creator = session.get(User, r.creator_id)
+    return recruitments
 
 def update_recruitment(session: Session, db_recruitment: Recruitment, recruitment_update: RecruitmentUpdate) -> Recruitment:
     update_data = recruitment_update.model_dump(exclude_unset=True)
@@ -47,6 +69,8 @@ def update_recruitment(session: Session, db_recruitment: Recruitment, recruitmen
     session.add(db_recruitment)
     session.commit()
     session.refresh(db_recruitment)
+    if db_recruitment.creator is None:
+        db_recruitment.creator = session.get(User, db_recruitment.creator_id)
 
     return db_recruitment
 
@@ -57,12 +81,11 @@ def delete_recruitment(session: Session, db_recruitment: Recruitment) -> None:
 ## Application CRUD
 
 def create_application(session: Session, app_create: ApplicationCreate, applicant_id: uuid.UUID) -> Application:
-    # We map the frontend schema to the DB model, and attach the logged-in user's ID
     db_application = Application(
         recruitment_id=app_create.recruitment_id,
         applicant_id=applicant_id,
         message=app_create.message,
-        status="Pending" # Default status
+        status="Pending"
     )
 
     session.add(db_application)
@@ -75,7 +98,6 @@ def get_application_by_id(session: Session, application_id: uuid.UUID) -> Applic
     return session.get(Application, application_id)
 
 def update_application_status(session: Session, db_application: Application, app_update: ApplicationUpdate) -> Application:
-    # This specifically targets the ApplicationUpdate schema which only allows updating the 'status'
     db_application.status = app_update.status
     
     session.add(db_application)

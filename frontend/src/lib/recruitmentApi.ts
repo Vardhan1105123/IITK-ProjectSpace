@@ -89,6 +89,10 @@ export interface RecruitmentSummary {
   status: "Open" | "Closed";
   created_at: string;
   recruiters: UserSummary[];
+
+  creator_id: string;
+  creator_name: string;
+  creator_avatar_url?: string;
 }
 
 export interface ApplicationCreate {
@@ -168,6 +172,26 @@ export async function deleteRecruitment(recruitmentId: string): Promise<void> {
     const data = await res.json().catch(() => ({}));
     throw new Error(extractError(data, "Failed to delete recruitment"));
   }
+}
+
+export async function addRecruiter(recruitmentId: string, userId: string): Promise<RecruitmentPublic> {
+  const res = await fetch(`${API}/${recruitmentId}/recruiters/${userId}`, {
+    method: "POST",
+    headers: { ...authHeaders() },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(extractError(data, "Failed to add recruiter"));
+  return data;
+}
+
+export async function removeRecruiter(recruitmentId: string, userId: string): Promise<RecruitmentPublic> {
+  const res = await fetch(`${API}/${recruitmentId}/recruiters/${userId}`, {
+    method: "DELETE",
+    headers: { ...authHeaders() },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(extractError(data, "Failed to remove recruiter"));
+  return data;
 }
 
 export async function applyToRecruitment(recruitmentId: string, payload: ApplicationCreate): Promise<ApplicationPublic> {

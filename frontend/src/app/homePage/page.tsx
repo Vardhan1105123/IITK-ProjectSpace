@@ -427,7 +427,7 @@ const HomePage: React.FC = () => {
                 : projectRows.map((row, ri) => (
                     <div className="feed-row" key={ri}>
                       {row.map((p) => (
-                        <ProjectCard key={p.id} item={p} onClick={() => router.push(`/projectPage/${p.id}`)} />
+                        <ProjectCard key={p.id} item={p} onClick={() => router.push(`/projectPage?id=${p.id}`)} />
                       ))}
                     </div>
                   ))
@@ -440,7 +440,7 @@ const HomePage: React.FC = () => {
                 : recruitmentRows.map((row, ri) => (
                     <div className="feed-row" key={ri}>
                       {row.map((r) => (
-                        <RecruitmentCard key={r.id} item={r} onClick={() => router.push(`/recruitmentPage/${r.id}`)} />
+                        <RecruitmentCard key={r.id} item={r} onClick={() => router.push(`/recruitmentPage?id=${r.id}`)} />
                       ))}
                     </div>
                   ))

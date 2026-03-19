@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from sqlmodel import Session
+from sqlmodel import Session, select
 from typing import List
 import uuid
 import os
@@ -8,6 +8,7 @@ import shutil
 from core.database import get_session
 from core.dependencies import get_current_user
 from models.user import User
+from models.project import ProjectTeamLink
 
 from schemas.project import ProjectCreate, ProjectUpdate, ProjectPublic, ProjectSummary
 from crud.project import (
@@ -16,6 +17,7 @@ from crud.project import (
     get_all_projects,
     update_project,
     delete_project,
+    add_user_to_project_team,
 )
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
@@ -33,14 +35,19 @@ def create_new_project(
     )
 
 
+@router.get("/", response_model=List[ProjectSummary])
+def read_projects(
+    skip: int = 0, limit: int = 100, db: Session = Depends(get_session)
+):
+    return get_all_projects(session=db, skip=skip, limit=limit)
+
+
 @router.get("/{project_id}", response_model=ProjectPublic)
 def read_project(project_id: uuid.UUID, db: Session = Depends(get_session)):
     """Returns the full project details, including the names of team members."""
     project = get_project_by_id(session=db, project_id=project_id)
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     return project
 
 
@@ -51,20 +58,11 @@ def update_existing_project(
     db: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    """Updates a project. Only team members have permission to do this."""
     project = get_project_by_id(session=db, project_id=project_id)
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
-        )
-
-    # SECURITY CHECK: Egalitarian access!
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     if current_user not in project.team_members:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only team members can edit this project.",
-        )
-
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only team members can edit this project.")
     return update_project(session=db, db_project=project, project_update=project_update)
 
 
@@ -74,22 +72,77 @@ def delete_existing_project(
     db: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    """Deletes a project. Only team members have permission to do this."""
     project = get_project_by_id(session=db, project_id=project_id)
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
-        )
-
-    # SECURITY CHECK: Egalitarian access!
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     if current_user not in project.team_members:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only team members can delete this project.",
-        )
-
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only team members can delete this project.")
     delete_project(session=db, db_project=project)
-    return {"ok": True}
+
+
+# --- Team member management ---
+
+@router.post("/{project_id}/members/{user_id}", response_model=ProjectPublic)
+def add_project_member(
+    project_id: uuid.UUID,
+    user_id: uuid.UUID,
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    project = get_project_by_id(session=db, project_id=project_id)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    if current_user not in project.team_members:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only team members can add members.")
+
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    already_member = db.exec(
+        select(ProjectTeamLink).where(
+            ProjectTeamLink.project_id == project_id,
+            ProjectTeamLink.user_id == user_id,
+        )
+    ).first()
+    if already_member:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User is already a team member.")
+
+    add_user_to_project_team(session=db, project_id=project_id, user_id=user_id)
+    db.refresh(project)
+    project.creator = db.get(User, project.creator_id)
+    return project
+
+
+@router.delete("/{project_id}/members/{user_id}", response_model=ProjectPublic)
+def remove_project_member(
+    project_id: uuid.UUID,
+    user_id: uuid.UUID,
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    project = get_project_by_id(session=db, project_id=project_id)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    if current_user not in project.team_members:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only team members can remove members.")
+    if user_id == project.creator_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot remove the project creator.")
+
+    link = db.exec(
+        select(ProjectTeamLink).where(
+            ProjectTeamLink.project_id == project_id,
+            ProjectTeamLink.user_id == user_id,
+        )
+    ).first()
+    if not link:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not a team member.")
+
+    db.delete(link)
+    db.commit()
+    db.refresh(project)
+    project.creator = db.get(User, project.creator_id)
+    return project
 
 
 @router.post("/{project_id}/upload", response_model=ProjectPublic)
@@ -106,9 +159,7 @@ def upload_project_media(
 
     # SECURITY: Only team members can upload!
     if current_user not in project.team_members:
-        raise HTTPException(
-            status_code=403, detail="Only team members can upload media."
-        )
+        raise HTTPException(status_code=403, detail="Only team members can upload media.")
 
     # Create the specific project folder
     save_dir = os.path.join("uploads", "Projects", str(project_id))
@@ -130,5 +181,5 @@ def upload_project_media(
     db.add(project)
     db.commit()
     db.refresh(project)
-
+    project.creator = db.get(User, project.creator_id)
     return project

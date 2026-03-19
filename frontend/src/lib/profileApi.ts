@@ -72,10 +72,7 @@ export interface CardData {
 // Fetches the logged-in user's profile
 export async function fetchMyProfile(): Promise<UserProfile> {
   const res = await fetch(`${API}/users/me`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders(),
-    },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
   });
   if (res.status === 401) throw new Error("Unauthorized");
   if (!res.ok) throw new Error("Failed to fetch profile");
@@ -86,10 +83,7 @@ export async function fetchMyProfile(): Promise<UserProfile> {
 export async function updateMyProfile(updateData: Partial<UserProfile>): Promise<UserProfile> {
   const res = await fetch(`${API}/users/me`, {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders(),
-    },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(updateData),
   });
   if (res.status === 401) throw new Error("Unauthorized");
@@ -97,24 +91,29 @@ export async function updateMyProfile(updateData: Partial<UserProfile>): Promise
     const errorData = await res.json();
     console.error("🚨 FastAPI 422 Validation Error:", JSON.stringify(errorData, null, 2));
     throw new Error(`API Error: ${JSON.stringify(errorData)}`);
-  };
+  }
   return res.json();
 }
 
 // Fetch another user's public profile by their ID
 export async function getUserById(userId: string): Promise<UserProfileView> {
   const res = await fetch(`${API}/users/${userId}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders(),
-    },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
   });
   if (res.status === 401) throw new Error("Unauthorized");
   if (!res.ok) throw new Error(extractError(await res.json().catch(() => ({})), "User not found"));
   return res.json();
 }
 
-// fetches the user's projects
+export async function searchUsers(q: string): Promise<UserProfileView[]> {
+  const res = await fetch(`${API}/users/search?q=${encodeURIComponent(q)}`, {
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+  });
+  if (res.status === 401) throw new Error("Unauthorized");
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function fetchMyProjects(): Promise<ProjectPublic[]> {
   const res = await fetch(`${API}/users/me/projects`, {
     headers: { "Content-Type": "application/json", ...authHeaders() },

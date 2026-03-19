@@ -182,7 +182,7 @@ export default function PostCreationForm() {
           await uploadProjectMedia(created.id, uploadedFiles);
         }
 
-        router.push(`/projectPage/${created.id}`);
+        router.push(`/projectPage?id=${created.id}`);
 
       } else {
         const created = await createRecruitment({
@@ -203,7 +203,7 @@ export default function PostCreationForm() {
           await uploadRecruitmentMedia(created.id, uploadedFiles);
         }
         
-        router.push(`/recruitmentPage/${created.id}`);
+        router.push(`/recruitmentPage?id=${created.id}`);
       }
 
     } catch (err: any) {

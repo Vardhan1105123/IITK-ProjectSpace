@@ -2,12 +2,14 @@
 
 import "./editRecruitmentPage.css";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import ReactMarkdown from "react-markdown"
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
-import { getRecruitment, updateRecruitment, deleteRecruitment } from "@/lib/recruitmentApi";
+import { getRecruitment, updateRecruitment, deleteRecruitment, addRecruiter, removeRecruiter } from "@/lib/recruitmentApi";
+import { searchUsers } from "@/lib/profileApi";
+import { UserSummary } from "@/lib/projectApi";
 import ConfirmPopUp from "../../components/confirmPopUp";
 
 interface Tag {
@@ -16,9 +18,9 @@ interface Tag {
 }
 
 export default function EditRecruitmentPage() {
-  const params        = useParams();
+  const searchParams        = useSearchParams();
   const router        = useRouter();
-  const recruitmentId = params?.id as string;
+  const recruitmentId = searchParams.get("id") as string;
 
   // Page states
   const [loading, setLoading]           = useState(true);
@@ -28,16 +30,22 @@ export default function EditRecruitmentPage() {
   const [showConfirm, setShowConfirm]   = useState(false);
 
   // Form states
-  const [activeTab, setActiveTab]           = useState<"Markdown" | "Plain-Text">("Markdown");
-  const [title, setTitle]                   = useState("");
-  const [details, setDetails]               = useState("");
-  const [status, setStatus]                 = useState<"Open" | "Closed">("Open");
+  const [activeTab, setActiveTab]                   = useState<"Markdown" | "Plain-Text">("Markdown");
+  const [title, setTitle]                           = useState("");
+  const [details, setDetails]                       = useState("");
+  const [status, setStatus]                         = useState<"Open" | "Closed">("Open");
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-  const [domains, setDomains]               = useState<Tag[]>([]);
-  const [prerequisites, setPrerequisites]   = useState<Tag[]>([]);
+  const [domains, setDomains]                       = useState<Tag[]>([]);
+  const [prerequisites, setPrerequisites]           = useState<Tag[]>([]);
   const [allowedDesignations, setAllowedDesignations] = useState<Tag[]>([]);
   const [allowedDepartments, setAllowedDepartments]   = useState<Tag[]>([]);
-  const [fellowRecruiters, setFellowRecruiters]       = useState("");
+
+  // Recruiter states
+  const [selectedUsers, setSelectedUsers]         = useState<UserSummary[]>([]);
+  const [originalUserIds, setOriginalUserIds]     = useState<string[]>([]);
+  const [userSearchQuery, setUserSearchQuery]     = useState("");
+  const [userSearchResults, setUserSearchResults] = useState<UserSummary[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers]   = useState(false);
 
   // Pre-populate fields
   useEffect(() => {
@@ -56,9 +64,18 @@ export default function EditRecruitmentPage() {
         setPrerequisites(raw.prerequisites.map((p, i) => ({ id: String(i), label: p })));
         setAllowedDesignations(raw.allowed_designations.map((d, i) => ({ id: String(i), label: d })));
         setAllowedDepartments(raw.allowed_departments.map((d, i) => ({ id: String(i), label: d })));
-        setFellowRecruiters(raw.recruiters.map((r) => r.fullname).join(", "));
+
+        // Pre-populate recruiters as chips
+        const recruiters: UserSummary[] = raw.recruiters.map((r) => ({
+          id: r.id,
+          fullname: r.fullname,
+          designation: r.designation,
+          profile_picture_url: r.profile_picture_url,
+        }));
+        setSelectedUsers(recruiters);
+        setOriginalUserIds(recruiters.map((r) => r.id));
       } catch (err: any) {
-        if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
+        if (err.message === "Unauthorized") { router.replace("/auth"); return; }
         setError("Failed to load recruitment. Please try again.");
       } finally {
         setLoading(false);
@@ -68,32 +85,62 @@ export default function EditRecruitmentPage() {
     fetchRecruitment();
   }, [recruitmentId]);
 
-  // Helpers
-  const makeAdder = (setter: React.Dispatch<React.SetStateAction<Tag[]>>, promptText: string) => () => {
-    const label = prompt(promptText);
-    if (label?.trim())
-      setter((prev) => [...prev, { id: Date.now().toString(), label: label.trim() }]);
+  // Debounced user search
+  useEffect(() => {
+    if (userSearchQuery.trim().length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      setIsSearchingUsers(true);
+      try {
+        const results = await searchUsers(userSearchQuery);
+        setUserSearchResults(
+          results.filter((r) => !selectedUsers.some((s) => s.id === r.id))
+        );
+      } catch {
+        setUserSearchResults([]);
+      } finally {
+        setIsSearchingUsers(false);
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [userSearchQuery, selectedUsers]);
+
+  const handleSelectUser = (user: UserSummary) => {
+    setSelectedUsers((prev) => [...prev, user]);
+    setUserSearchQuery("");
+    setUserSearchResults([]);
   };
 
+  const handleRemoveUser = (userId: string) => {
+    setSelectedUsers((prev) => prev.filter((u) => u.id !== userId));
+  };
+
+  // Tag helpers
+  const makeAdder = (setter: React.Dispatch<React.SetStateAction<Tag[]>>, promptText: string) => () => {
+    const label = prompt(promptText);
+    if (label?.trim()) setter((prev) => [...prev, { id: Date.now().toString(), label: label.trim() }]);
+  };
   const makeRemover = (setter: React.Dispatch<React.SetStateAction<Tag[]>>) => (id: string) =>
     setter((prev) => prev.filter((t) => t.id !== id));
 
-  const addDomain          = makeAdder(setDomains,              "Enter domain tag:");
+  const addDomain          = makeAdder(setDomains,               "Enter domain tag:");
   const removeDomain       = makeRemover(setDomains);
-  const addPrerequisite    = makeAdder(setPrerequisites,         "Enter prerequisite:");
+  const addPrerequisite    = makeAdder(setPrerequisites,          "Enter prerequisite:");
   const removePrerequisite = makeRemover(setPrerequisites);
-  const addDesignation     = makeAdder(setAllowedDesignations,   "Enter allowed designation:");
+  const addDesignation     = makeAdder(setAllowedDesignations,    "Enter allowed designation:");
   const removeDesignation  = makeRemover(setAllowedDesignations);
-  const addDepartment      = makeAdder(setAllowedDepartments,    "Enter allowed department:");
+  const addDepartment      = makeAdder(setAllowedDepartments,     "Enter allowed department:");
   const removeDepartment   = makeRemover(setAllowedDepartments);
 
   const handleDelete = async () => {
     try {
       await deleteRecruitment(recruitmentId);
-      router.replace("/homePage");
+      router.replace("/homepage");
     } catch (err: any) {
-      if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
-      setSubmitError(err.message || "Failed to delete recruitment. Please try again.");
+      if (err.message === "Unauthorized") { router.replace("/auth"); return; }
+      setSubmitError(err.message || "Failed to delete recruitment.");
     } finally {
       setShowConfirm(false);
     }
@@ -106,8 +153,9 @@ export default function EditRecruitmentPage() {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
+      // 1. Save field changes
       await updateRecruitment(recruitmentId, {
-        title:                title.trim(),
+        title,
         description:          details.trim(),
         description_format:   activeTab === "Markdown" ? "markdown" : "plain-text",
         domains:              domains.map((t) => t.label),
@@ -116,9 +164,20 @@ export default function EditRecruitmentPage() {
         allowed_departments:  allowedDepartments.map((t) => t.label),
         status,
       });
-      router.push(`/recruitmentPage/${recruitmentId}`);
+
+      // 2. Diff recruiters and apply adds/removes
+      const currentIds = selectedUsers.map((u) => u.id);
+      const toAdd      = currentIds.filter((id) => !originalUserIds.includes(id));
+      const toRemove   = originalUserIds.filter((id) => !currentIds.includes(id));
+
+      await Promise.all([
+        ...toAdd.map((id) => addRecruiter(recruitmentId, id)),
+        ...toRemove.map((id) => removeRecruiter(recruitmentId, id)),
+      ]);
+
+      router.push(`/recruitmentPage?id=${recruitmentId}`);
     } catch (err: any) {
-      if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
+      if (err.message === "Unauthorized") { router.replace("/auth"); return; }
       setSubmitError(err.message || "Failed to save changes. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -142,13 +201,12 @@ export default function EditRecruitmentPage() {
           </span>
         ))}
       </div>
-      <button className="pcf-add-btn" onClick={onAdd}>
-        <span className="pcf-add-icon">+</span> {addLabel}
-      </button>
+      <button className="pcf-add-btn" onClick={onAdd}><span className="pcf-add-icon">+</span> {addLabel}</button>
     </>
   );
 
   return (
+    <Suspense>
     <div className="app-shell">
       <Header showEditProfile={false} />
 
@@ -182,7 +240,7 @@ export default function EditRecruitmentPage() {
 
               <div className="pcf-form-container">
 
-                {/* Section 1 */}
+                {/* Section 1 — Details */}
                 <section className="pcf-card">
                   <div className="pcf-card-header">
                     <div>
@@ -192,27 +250,16 @@ export default function EditRecruitmentPage() {
 
                     {/* Status dropdown */}
                     <div className="pcf-dropdown-wrapper">
-                      <button
-                        className="pcf-dropdown-btn"
-                        onClick={() => setStatusDropdownOpen((v) => !v)}
-                      >
+                      <button className="pcf-dropdown-btn" onClick={() => setStatusDropdownOpen((v) => !v)}>
                         <span>{status}</span>
-                        <svg
-                          width="16" height="16" viewBox="0 0 24 24"
-                          fill="none" stroke="currentColor" strokeWidth="2"
-                          className={`pcf-chevron${statusDropdownOpen ? " pcf-chevron--open" : ""}`}
-                        >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`pcf-chevron${statusDropdownOpen ? " pcf-chevron--open" : ""}`}>
                           <polyline points="6 9 12 15 18 9" />
                         </svg>
                       </button>
                       {statusDropdownOpen && (
                         <div className="pcf-dropdown-menu">
                           {(["Open", "Closed"] as const).map((s) => (
-                            <button
-                              key={s}
-                              className={`pcf-dropdown-item${status === s ? " pcf-dropdown-item--active" : ""}`}
-                              onClick={() => { setStatus(s); setStatusDropdownOpen(false); }}
-                            >
+                            <button key={s} className={`pcf-dropdown-item${status === s ? " pcf-dropdown-item--active" : ""}`} onClick={() => { setStatus(s); setStatusDropdownOpen(false); }}>
                               {s}
                             </button>
                           ))}
@@ -227,12 +274,7 @@ export default function EditRecruitmentPage() {
                       Title
                       <span className="pcf-label-hint">(This will be displayed everywhere, make sure it is catchy :))</span>
                     </label>
-                    <input
-                      className="pcf-input"
-                      placeholder="Eg. Generative AI for Healthcare Applications"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
+                    <input className="pcf-input" placeholder="Eg. Generative AI for Healthcare Applications" value={title} onChange={(e) => setTitle(e.target.value)} />
                   </div>
 
                   {/* Details */}
@@ -243,60 +285,37 @@ export default function EditRecruitmentPage() {
                     </label>
                     <div className="pcf-tabs">
                       {(["Markdown", "Plain-Text"] as const).map((tab) => (
-                        <button
-                          key={tab}
-                          className={`pcf-tab${activeTab === tab ? " pcf-tab--active" : ""}`}
-                          onClick={() => setActiveTab(tab)}
-                        >
+                        <button key={tab} className={`pcf-tab${activeTab === tab ? " pcf-tab--active" : ""}`} onClick={() => setActiveTab(tab)}>
                           {tab}
                         </button>
                       ))}
                     </div>
                     {activeTab === "Markdown" ? (
-                    <div className="pcf-split-pane">
-                      <textarea
-                        className="pcf-textarea pcf-textarea--tall pcf-split-editor"
-                        value={details}
-                        onChange={(e) => setDetails(e.target.value)}
-                        placeholder="Write markdown here..."
-                      />
-                      <div className="pcf-split-preview">
-                        {details.trim()
-                          ? <ReactMarkdown>{details}</ReactMarkdown>
-                          : <span className="pcf-preview-placeholder">Preview will appear here...</span>
-                        }
+                      <div className="pcf-split-pane">
+                        <textarea className="pcf-textarea pcf-textarea--tall pcf-split-editor" value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Write markdown here..." />
+                        <div className="pcf-split-preview">
+                          {details.trim() ? <ReactMarkdown>{details}</ReactMarkdown> : <span className="pcf-preview-placeholder">Preview will appear here...</span>}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <textarea
-                      className="pcf-textarea pcf-textarea--tall"
-                      value={details}
-                      onChange={(e) => setDetails(e.target.value)}
-                      placeholder="Write your description here..."
-                    />
-                  )}
+                    ) : (
+                      <textarea className="pcf-textarea pcf-textarea--tall" value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Write your description here..." />
+                    )}
                   </div>
 
                   {/* Domains */}
                   <div className="pcf-field">
-                    <label className="pcf-label">
-                      Domains / Tags
-                      <span className="pcf-label-hint">(Add tags that best describe the domains this recruitment falls under.)</span>
-                    </label>
+                    <label className="pcf-label">Domains / Tags<span className="pcf-label-hint">(Add tags that best describe the domains this recruitment falls under.)</span></label>
                     <TagBlock tags={domains} onAdd={addDomain} onRemove={removeDomain} addLabel="Add Domain" />
                   </div>
 
                   {/* Prerequisites */}
                   <div className="pcf-field">
-                    <label className="pcf-label">
-                      Prerequisites
-                      <span className="pcf-label-hint">(Add skills or technologies applicants should be familiar with.)</span>
-                    </label>
+                    <label className="pcf-label">Prerequisites<span className="pcf-label-hint">(Add skills or technologies applicants should be familiar with.)</span></label>
                     <TagBlock tags={prerequisites} onAdd={addPrerequisite} onRemove={removePrerequisite} addLabel="Add Prerequisite" />
                   </div>
                 </section>
 
-                {/* Section 2 */}
+                {/* Section 2 — Specifications & Team */}
                 <section className="pcf-card">
                   <div className="pcf-card-header">
                     <div>
@@ -307,19 +326,13 @@ export default function EditRecruitmentPage() {
 
                   {/* Allowed Designations */}
                   <div className="pcf-field">
-                    <label className="pcf-label">
-                      Allowed Designations
-                      <span className="pcf-label-hint">(Only applicants with these designations will be able to apply.)</span>
-                    </label>
+                    <label className="pcf-label">Allowed Designations<span className="pcf-label-hint">(Only applicants with these designations will be able to apply.)</span></label>
                     <TagBlock tags={allowedDesignations} onAdd={addDesignation} onRemove={removeDesignation} addLabel="Add Designation" />
                   </div>
 
                   {/* Allowed Departments */}
                   <div className="pcf-field">
-                    <label className="pcf-label">
-                      Allowed Departments
-                      <span className="pcf-label-hint">(Only applicants from these departments will be able to apply.)</span>
-                    </label>
+                    <label className="pcf-label">Allowed Departments<span className="pcf-label-hint">(Only applicants from these departments will be able to apply.)</span></label>
                     <TagBlock tags={allowedDepartments} onAdd={addDepartment} onRemove={removeDepartment} addLabel="Add Department" />
                   </div>
 
@@ -327,37 +340,59 @@ export default function EditRecruitmentPage() {
                   <div className="pcf-field">
                     <label className="pcf-label">
                       Fellow Recruiters
-                      <span className="pcf-label-hint">
-                        (Verification request will be sent to users you add. Only users who verify will be displayed on the recruitment page.)
-                      </span>
+                      <span className="pcf-label-hint">(Search and add recruiters. Changes are applied on Save.)</span>
                     </label>
-                    <div className="pcf-search-input-wrapper">
-                      <span className="pcf-at-icon">@</span>
-                      <input
-                        className="pcf-input pcf-input--search"
-                        placeholder="Search for fellow recruiters"
-                        value={fellowRecruiters}
-                        onChange={(e) => setFellowRecruiters(e.target.value)}
-                      />
+
+                    {/* Chips */}
+                    {selectedUsers.length > 0 && (
+                      <div className="pcf-tags-row" style={{ marginBottom: "12px" }}>
+                        {selectedUsers.map((user) => (
+                          <span key={user.id} className="pcf-tag" style={{ background: "var(--color-dark)", color: "white" }}>
+                            {user.fullname}
+                            <button className="pcf-tag-remove" style={{ color: "white" }} onClick={() => handleRemoveUser(user.id)}>×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Search input */}
+                    <div style={{ position: "relative" }}>
+                      <div className="pcf-search-input-wrapper">
+                        <span className="pcf-at-icon">@</span>
+                        <input
+                          className="pcf-input pcf-input--search"
+                          placeholder="Search for recruiters..."
+                          value={userSearchQuery}
+                          onChange={(e) => setUserSearchQuery(e.target.value)}
+                        />
+                      </div>
+                      {isSearchingUsers && (
+                        <div style={{ position: "absolute", right: "12px", top: "12px", fontSize: "12px", color: "var(--text-muted)" }}>
+                          Searching...
+                        </div>
+                      )}
+                      {userSearchResults.length > 0 && (
+                        <div className="pcf-dropdown-menu" style={{ display: "block", position: "absolute", top: "100%", left: 0, width: "100%", zIndex: 10, marginTop: "4px", maxHeight: "200px", overflowY: "auto" }}>
+                          {userSearchResults.map((user) => (
+                            <button key={user.id} className="pcf-dropdown-item" onClick={() => handleSelectUser(user)} style={{ textAlign: "left", padding: "10px" }}>
+                              <strong>{user.fullname}</strong>
+                              <span style={{ display: "block", fontSize: "11px", color: "var(--text-muted)" }}>{user.designation}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </section>
 
                 {/* Error */}
                 {submitError && (
-                  <p style={{ color: "#a53d2a", fontSize: 13, textAlign: "right" }}>
-                    {submitError}
-                  </p>
+                  <p style={{ color: "#a53d2a", fontSize: 13, textAlign: "right" }}>{submitError}</p>
                 )}
 
                 {/* Save / Delete */}
                 <div className="pcf-submit-row" style={{ justifyContent: "space-between" }}>
-                  <button
-                    className="pcf-submit-btn"
-                    style={{ background: "#a53d2a" }}
-                    onClick={() => setShowConfirm(true)}
-                    disabled={isSubmitting}
-                  >
+                  <button className="pcf-submit-btn" style={{ background: "#a53d2a" }} onClick={() => setShowConfirm(true)} disabled={isSubmitting}>
                     Delete Recruitment
                   </button>
                   <button className="pcf-submit-btn" onClick={handleSave} disabled={isSubmitting}>
@@ -384,5 +419,6 @@ export default function EditRecruitmentPage() {
         </main>
       </div>
     </div>
+    </Suspense>
   );
 }

@@ -67,6 +67,10 @@ export interface ProjectSummary {
   domains: string[];
   created_at: string;
   team_members: UserSummary[];
+
+  creator_id: string;
+  creator_name: string;
+  creator_avatar_url?: string;
 }
 
 // API Functions
@@ -137,4 +141,24 @@ export async function deleteProject(projectId: string): Promise<void> {
     const data = await res.json().catch(() => ({}));
     throw new Error(extractError(data, "Failed to delete project"));
   }
+}
+
+export async function addProjectMember(projectId: string, userId: string): Promise<ProjectPublic> {
+  const res = await fetch(`${API}/${projectId}/members/${userId}`, {
+    method: "POST",
+    headers: { ...authHeaders() },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(extractError(data, "Failed to add member"));
+  return data;
+}
+
+export async function removeProjectMember(projectId: string, userId: string): Promise<ProjectPublic> {
+  const res = await fetch(`${API}/${projectId}/members/${userId}`, {
+    method: "DELETE",
+    headers: { ...authHeaders() },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(extractError(data, "Failed to remove member"));
+  return data;
 }

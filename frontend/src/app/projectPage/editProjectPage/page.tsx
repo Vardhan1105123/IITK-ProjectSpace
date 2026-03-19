@@ -1,13 +1,15 @@
 "use client";
 
-import "./editProjectPage";
+import "./editProjectPage.css";
 
-import { useState, useRef, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useRef, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
-import { getProject, updateProject, deleteProject } from "@/lib/projectApi";
+import { getProject, updateProject, deleteProject, addProjectMember, removeProjectMember } from "@/lib/projectApi";
+import { searchUsers } from "@/lib/profileApi";
+import { UserSummary } from "@/lib/projectApi";
 import ConfirmPopUp from "../../components/confirmPopUp";
 
 interface Tag {
@@ -21,9 +23,9 @@ interface LinkEntry {
 }
 
 export default function EditProjectPage() {
-  const params    = useParams();
+  const searchParams    = useSearchParams();
   const router    = useRouter();
-  const projectId = params?.id as string;
+  const projectId = searchParams.get("id") as string;
 
   // Page states
   const [loading, setLoading]           = useState(true);
@@ -42,6 +44,13 @@ export default function EditProjectPage() {
   const [teamMembers, setTeamMembers]             = useState("");
   const [uploadedFiles, setUploadedFiles]         = useState<File[]>([]);
   const [existingMediaUrls, setExistingMediaUrls] = useState<string[]>([]);
+
+  // Team member states
+  const [selectedUsers, setSelectedUsers]         = useState<UserSummary[]>([]);
+  const [originalUserIds, setOriginalUserIds]     = useState<string[]>([]);
+  const [userSearchQuery, setUserSearchQuery]     = useState("");
+  const [userSearchResults, setUserSearchResults] = useState<UserSummary[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers]   = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -65,9 +74,18 @@ export default function EditProjectPage() {
             : [{ id: "1", value: "" }]
         );
         setExistingMediaUrls(raw.media_urls ?? []);
-        setTeamMembers(raw.team_members.map((m) => m.fullname).join(", "));
+
+        // Pre-populate team members as chips
+        const members: UserSummary[] = raw.team_members.map((m) => ({
+          id: m.id,
+          fullname: m.fullname,
+          designation: m.designation,
+          profile_picture_url: m.profile_picture_url,
+        }));
+        setSelectedUsers(members);
+        setOriginalUserIds(members.map((m) => m.id));
       } catch (err: any) {
-        if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
+        if (err.message === "Unauthorized") { router.replace("/auth"); return; }
         setError("Failed to load project. Please try again.");
       } finally {
         setLoading(false);
@@ -77,7 +95,40 @@ export default function EditProjectPage() {
     fetchProject();
   }, [projectId]);
 
-  // Helpers
+  // Debounced user search
+  useEffect(() => {
+    if (userSearchQuery.trim().length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      setIsSearchingUsers(true);
+      try {
+        const results = await searchUsers(userSearchQuery);
+        // Filter out already selected users
+        setUserSearchResults(
+          results.filter((r) => !selectedUsers.some((s) => s.id === r.id))
+        );
+      } catch {
+        setUserSearchResults([]);
+      } finally {
+        setIsSearchingUsers(false);
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [userSearchQuery, selectedUsers]);
+
+  const handleSelectUser = (user: UserSummary) => {
+    setSelectedUsers((prev) => [...prev, user]);
+    setUserSearchQuery("");
+    setUserSearchResults([]);
+  };
+
+  const handleRemoveUser = (userId: string) => {
+    setSelectedUsers((prev) => prev.filter((u) => u.id !== userId));
+  };
+
+  // Tag helpers
   const addTag = () => {
     const label = prompt("Enter domain tag:");
     if (label?.trim())
@@ -85,13 +136,13 @@ export default function EditProjectPage() {
   };
   const removeTag = (id: string) => setTags((prev) => prev.filter((t) => t.id !== id));
 
-  const addLink = () =>
-    setLinks((prev) => [...prev, { id: Date.now().toString(), value: "" }]);
+  // Link helpers
+  const addLink = () => setLinks((prev) => [...prev, { id: Date.now().toString(), value: "" }]);
   const updateLink = (id: string, value: string) =>
     setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, value } : l)));
-  const removeLink = (id: string) =>
-    setLinks((prev) => prev.filter((l) => l.id !== id));
+  const removeLink = (id: string) => setLinks((prev) => prev.filter((l) => l.id !== id));
 
+  // File helpers
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setUploadedFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files)]);
@@ -108,10 +159,10 @@ export default function EditProjectPage() {
   const handleDelete = async () => {
     try {
       await deleteProject(projectId);
-      router.replace("/homePage");
+      router.replace("/homepage");
     } catch (err: any) {
-      if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
-      setSubmitError(err.message || "Failed to delete project. Please try again.");
+      if (err.message === "Unauthorized") { router.replace("/auth"); return; }
+      setSubmitError(err.message || "Failed to delete project.");
     } finally {
       setShowConfirm(false);
     }
@@ -125,8 +176,7 @@ export default function EditProjectPage() {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      // TODO: uploadedFiles need to be uploaded to CDN first to get URLs.
-      // For now only existing media URLs are kept until file upload is implemented.
+      // 1. Save field changes
       await updateProject(projectId, {
         title:              title.trim(),
         summary:            summary.trim(),
@@ -136,9 +186,20 @@ export default function EditProjectPage() {
         links:              links.map((l) => l.value).filter(Boolean),
         media_urls:         existingMediaUrls,
       });
-      router.push(`/projectPage/${projectId}`);
+
+      // 2. Diff team members and apply adds/removes
+      const currentIds  = selectedUsers.map((u) => u.id);
+      const toAdd       = currentIds.filter((id) => !originalUserIds.includes(id));
+      const toRemove    = originalUserIds.filter((id) => !currentIds.includes(id));
+
+      await Promise.all([
+        ...toAdd.map((id) => addProjectMember(projectId, id)),
+        ...toRemove.map((id) => removeProjectMember(projectId, id)),
+      ]);
+
+      router.push(`/projectPage?id=${projectId}`);
     } catch (err: any) {
-      if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
+      if (err.message === "Unauthorized") { router.replace("/auth"); return; }
       setSubmitError(err.message || "Failed to save changes. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -146,6 +207,7 @@ export default function EditProjectPage() {
   };
 
   return (
+    <Suspense>
     <div className="app-shell">
       <Header showEditProfile={false} />
 
@@ -179,7 +241,7 @@ export default function EditProjectPage() {
 
               <div className="pcf-form-container">
 
-                {/* Section 1 */}
+                {/* Section 1 — Details */}
                 <section className="pcf-card">
                   <div className="pcf-card-header">
                     <div>
@@ -194,69 +256,41 @@ export default function EditProjectPage() {
                       Title
                       <span className="pcf-label-hint">(This will be displayed everywhere, make sure it is catchy :))</span>
                     </label>
-                    <input
-                      className="pcf-input"
-                      placeholder="Eg. Generative AI for Healthcare Applications"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
+                    <input className="pcf-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Eg. Generative AI for Healthcare Applications" />
                   </div>
 
                   {/* Summary */}
                   <div className="pcf-field">
                     <label className="pcf-label">
                       Summary
-                      <span className="pcf-label-hint">
-                        (A concise summary of your work. This will be used on project posts on the discover page and search results.)
-                      </span>
+                      <span className="pcf-label-hint">(A concise summary of your work.)</span>
                     </label>
-                    <textarea
-                      className="pcf-textarea pcf-textarea--short"
-                      value={summary}
-                      onChange={(e) => setSummary(e.target.value)}
-                    />
+                    <textarea className="pcf-textarea pcf-textarea--short" value={summary} onChange={(e) => setSummary(e.target.value)} />
                   </div>
 
                   {/* Details */}
                   <div className="pcf-field">
                     <label className="pcf-label">
                       Details
-                      <span className="pcf-label-hint">(A detailed description of your work. This will be displayed on the project page.)</span>
+                      <span className="pcf-label-hint">(A detailed description of your work.)</span>
                     </label>
                     <div className="pcf-tabs">
                       {(["Markdown", "Plain-Text"] as const).map((tab) => (
-                        <button
-                          key={tab}
-                          className={`pcf-tab${activeTab === tab ? " pcf-tab--active" : ""}`}
-                          onClick={() => setActiveTab(tab)}
-                        >
+                        <button key={tab} className={`pcf-tab${activeTab === tab ? " pcf-tab--active" : ""}`} onClick={() => setActiveTab(tab)}>
                           {tab}
                         </button>
                       ))}
                     </div>
                     {activeTab === "Markdown" ? (
-                    <div className="pcf-split-pane">
-                      <textarea
-                        className="pcf-textarea pcf-textarea--tall pcf-split-editor"
-                        value={details}
-                        onChange={(e) => setDetails(e.target.value)}
-                        placeholder="Write markdown here..."
-                      />
-                      <div className="pcf-split-preview">
-                        {details.trim()
-                          ? <ReactMarkdown>{details}</ReactMarkdown>
-                          : <span className="pcf-preview-placeholder">Preview will appear here...</span>
-                        }
+                      <div className="pcf-split-pane">
+                        <textarea className="pcf-textarea pcf-textarea--tall pcf-split-editor" value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Write markdown here..." />
+                        <div className="pcf-split-preview">
+                          {details.trim() ? <ReactMarkdown>{details}</ReactMarkdown> : <span className="pcf-preview-placeholder">Preview will appear here...</span>}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <textarea
-                      className="pcf-textarea pcf-textarea--tall"
-                      value={details}
-                      onChange={(e) => setDetails(e.target.value)}
-                      placeholder="Write your description here..."
-                    />
-                  )}
+                    ) : (
+                      <textarea className="pcf-textarea pcf-textarea--tall" value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Write your description here..." />
+                    )}
                   </div>
 
                   {/* Domain Tags */}
@@ -273,13 +307,11 @@ export default function EditProjectPage() {
                         </span>
                       ))}
                     </div>
-                    <button className="pcf-add-btn" onClick={addTag}>
-                      <span className="pcf-add-icon">+</span> Add Tag
-                    </button>
+                    <button className="pcf-add-btn" onClick={addTag}><span className="pcf-add-icon">+</span> Add Tag</button>
                   </div>
                 </section>
 
-                {/* Section 2 */}
+                {/* Section 2 — Media & Links */}
                 <section className="pcf-card">
                   <div className="pcf-card-header">
                     <div>
@@ -314,12 +346,7 @@ export default function EditProjectPage() {
                       Upload New Media
                       <span className="pcf-label-hint">(Add new images, videos or PDFs.)</span>
                     </label>
-                    <div
-                      className="pcf-upload-zone"
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={handleFileDrop}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
+                    <div className="pcf-upload-zone" onDragOver={(e) => e.preventDefault()} onDrop={handleFileDrop} onClick={() => fileInputRef.current?.click()}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
                         <polyline points="17 8 12 3 7 8" />
@@ -327,14 +354,7 @@ export default function EditProjectPage() {
                       </svg>
                       <span className="pcf-upload-title">Upload Files from your Computer</span>
                       <span className="pcf-upload-hint">Upload images, videos or PDFs</span>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        accept="image/*,video/*,.pdf"
-                        style={{ display: "none" }}
-                        onChange={handleFileInput}
-                      />
+                      <input ref={fileInputRef} type="file" multiple accept="image/*,video/*,.pdf" style={{ display: "none" }} onChange={handleFileInput} />
                     </div>
                     {uploadedFiles.length > 0 && (
                       <div className="pcf-file-list">
@@ -361,25 +381,16 @@ export default function EditProjectPage() {
                             <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
                             <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                           </svg>
-                          <input
-                            className="pcf-input pcf-input--link"
-                            placeholder="https://"
-                            value={link.value}
-                            onChange={(e) => updateLink(link.id, e.target.value)}
-                          />
+                          <input className="pcf-input pcf-input--link" placeholder="https://" value={link.value} onChange={(e) => updateLink(link.id, e.target.value)} />
                         </div>
-                        {links.length > 1 && (
-                          <button className="pcf-link-remove" onClick={() => removeLink(link.id)}>×</button>
-                        )}
+                        {links.length > 1 && <button className="pcf-link-remove" onClick={() => removeLink(link.id)}>×</button>}
                       </div>
                     ))}
-                    <button className="pcf-add-btn" onClick={addLink}>
-                      <span className="pcf-add-icon">+</span> Add Link
-                    </button>
+                    <button className="pcf-add-btn" onClick={addLink}><span className="pcf-add-icon">+</span> Add Link</button>
                   </div>
                 </section>
 
-                {/* Section 3 */}
+                {/* Section 3 — Team */}
                 <section className="pcf-card">
                   <div className="pcf-card-header">
                     <div>
@@ -391,37 +402,59 @@ export default function EditProjectPage() {
                   <div className="pcf-field">
                     <label className="pcf-label">
                       Team Members
-                      <span className="pcf-label-hint">
-                        (Verification request will be sent to users you add. Only users who verify will be displayed on the project page.)
-                      </span>
+                      <span className="pcf-label-hint">(Search and add team members. Changes are applied on Save.)</span>
                     </label>
-                    <div className="pcf-search-input-wrapper">
-                      <span className="pcf-at-icon">@</span>
-                      <input
-                        className="pcf-input pcf-input--search"
-                        placeholder="Search for your team members"
-                        value={teamMembers}
-                        onChange={(e) => setTeamMembers(e.target.value)}
-                      />
+
+                    {/* Chips */}
+                    {selectedUsers.length > 0 && (
+                      <div className="pcf-tags-row" style={{ marginBottom: "12px" }}>
+                        {selectedUsers.map((user) => (
+                          <span key={user.id} className="pcf-tag" style={{ background: "var(--color-dark)", color: "white" }}>
+                            {user.fullname}
+                            <button className="pcf-tag-remove" style={{ color: "white" }} onClick={() => handleRemoveUser(user.id)}>×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Search input */}
+                    <div style={{ position: "relative" }}>
+                      <div className="pcf-search-input-wrapper">
+                        <span className="pcf-at-icon">@</span>
+                        <input
+                          className="pcf-input pcf-input--search"
+                          placeholder="Search for team members..."
+                          value={userSearchQuery}
+                          onChange={(e) => setUserSearchQuery(e.target.value)}
+                        />
+                      </div>
+                      {isSearchingUsers && (
+                        <div style={{ position: "absolute", right: "12px", top: "12px", fontSize: "12px", color: "var(--text-muted)" }}>
+                          Searching...
+                        </div>
+                      )}
+                      {userSearchResults.length > 0 && (
+                        <div className="pcf-dropdown-menu" style={{ display: "block", position: "absolute", top: "100%", left: 0, width: "100%", zIndex: 10, marginTop: "4px", maxHeight: "200px", overflowY: "auto" }}>
+                          {userSearchResults.map((user) => (
+                            <button key={user.id} className="pcf-dropdown-item" onClick={() => handleSelectUser(user)} style={{ textAlign: "left", padding: "10px" }}>
+                              <strong>{user.fullname}</strong>
+                              <span style={{ display: "block", fontSize: "11px", color: "var(--text-muted)" }}>{user.designation}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </section>
 
                 {/* Error */}
                 {submitError && (
-                  <p style={{ color: "#a53d2a", fontSize: 13, textAlign: "right" }}>
-                    {submitError}
-                  </p>
+                  <p style={{ color: "#a53d2a", fontSize: 13, textAlign: "right" }}>{submitError}</p>
                 )}
 
                 {/* Save / Delete */}
                 <div className="pcf-submit-row" style={{ justifyContent: "space-between" }}>
-                  <button
-                    className="pcf-submit-btn"
-                    style={{ background: "#a53d2a" }}
-                    onClick={() => setShowConfirm(true)}
-                    disabled={isSubmitting}
-                  >
+                  <button className="pcf-submit-btn" style={{ background: "#a53d2a" }} onClick={() => setShowConfirm(true)} disabled={isSubmitting}>
                     Delete Project
                   </button>
                   <button className="pcf-submit-btn" onClick={handleSave} disabled={isSubmitting}>
@@ -448,5 +481,6 @@ export default function EditProjectPage() {
         </main>
       </div>
     </div>
+    </Suspense>
   );
 }

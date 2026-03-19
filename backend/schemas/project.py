@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, HttpUrl, field_validator
-from typing import Optional, List
+from pydantic import BaseModel, Field, HttpUrl, field_validator, computed_field
+from typing import Optional, List, Any
 import uuid
 from datetime import datetime
 from core.utils import Designation
@@ -69,10 +69,23 @@ class ProjectPublic(ProjectBase):
     created_at: datetime
     updated_at: datetime
     team_members: List[UserSummary] = []
-    
     creator_id: uuid.UUID
-    creator_name: str
-    creator_avatar_url: Optional[str] = None
+
+    @computed_field
+    @property
+    def creator_name(self) -> str:
+        creator = getattr(self, "creator", None)
+        if creator is not None:
+            return creator.fullname or ""
+        return ""
+
+    @computed_field
+    @property
+    def creator_avatar_url(self) -> Optional[str]:
+        creator = getattr(self, "creator", None)
+        if creator is not None:
+            return creator.profile_picture_url
+        return None
 
     class Config:
         from_attributes = True
@@ -86,8 +99,24 @@ class ProjectSummary(BaseModel):
     summary: str
     domains: List[str] = []
     created_at: datetime
-    
     team_members: List[UserSummary] = []
+    creator_id: uuid.UUID
+
+    @computed_field
+    @property
+    def creator_name(self) -> str:
+        creator = getattr(self, "creator", None)
+        if creator is not None:
+            return creator.fullname or ""
+        return ""
+
+    @computed_field
+    @property
+    def creator_avatar_url(self) -> Optional[str]:
+        creator = getattr(self, "creator", None)
+        if creator is not None:
+            return creator.profile_picture_url
+        return None
 
     class Config:
         from_attributes = True
