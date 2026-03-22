@@ -240,9 +240,22 @@ export default function EditProjectPage() {
           {/* Form */}
           {!loading && !error && (
             <>
-              <p className="pcf-faq-hint">
-                Edit your project details below. Changes will be saved once you click Save Changes.
-              </p>
+              <div className="edit-page__actions">
+                <button className="edit-page__action-btn" onClick={() => router.push(`/projectPage?id=${projectId}`)} disabled={isSubmitting}>
+                  ← Go Back
+                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  {submitError && (
+                    <p style={{ color: "#a53d2a", fontSize: 13, margin: 0 }}>{submitError}</p>
+                  )}
+                  <button className="edit-page__action-btn edit-page__action-btn--destructive" onClick={() => setShowConfirm(true)} disabled={isSubmitting}>
+                    Delete Project
+                  </button>
+                  <button className="edit-page__action-btn" onClick={handleSave} disabled={isSubmitting}>
+                    {isSubmitting ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </div>
 
               <div className="pcf-form-container">
 
@@ -452,34 +465,19 @@ export default function EditProjectPage() {
                   </div>
                 </section>
 
-                {/* Error */}
-                {submitError && (
-                  <p style={{ color: "#a53d2a", fontSize: 13, textAlign: "right" }}>{submitError}</p>
-                )}
-
-                {/* Save / Delete */}
-                <div className="pcf-submit-row" style={{ justifyContent: "space-between" }}>
-                  <button className="pcf-submit-btn" style={{ background: "#a53d2a" }} onClick={() => setShowConfirm(true)} disabled={isSubmitting}>
-                    Delete Project
-                  </button>
-                  <button className="pcf-submit-btn" onClick={handleSave} disabled={isSubmitting}>
-                    {isSubmitting ? "Saving..." : "Save Changes"}
-                  </button>
-                </div>
-
-                {showConfirm && (
-                  <ConfirmPopUp
-                    heading="Delete Project?"
-                    message="This will permanently delete this project and cannot be undone."
-                    confirmLabel="Delete"
-                    cancelLabel="Cancel"
-                    isDestructive={true}
-                    onConfirm={handleDelete}
-                    onCancel={() => setShowConfirm(false)}
-                  />
-                )}
-
               </div>
+
+              {showConfirm && (
+                <ConfirmPopUp
+                  heading="Delete Project?"
+                  message="This will permanently delete this project and cannot be undone."
+                  confirmLabel="Delete"
+                  cancelLabel="Cancel"
+                  isDestructive={true}
+                  onConfirm={handleDelete}
+                  onCancel={() => setShowConfirm(false)}
+                />
+              )}
             </>
           )}
 

@@ -135,6 +135,15 @@ export async function uploadRecruitmentMedia(recruitmentId: string, files: File[
   }
 }
 
+export async function getRecruitmentCount(): Promise<number> {
+  const res = await fetch(`${API}/count`, {
+    headers: { ...authHeaders() },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(extractError(data, "Failed to fetch recruitment count"));
+  return data.count as number;
+}
+
 export async function getRecruitment(recruitmentId: string): Promise<RecruitmentPublic> {
   const res = await fetch(`${API}/${recruitmentId}`, {
     headers: { ...authHeaders() },

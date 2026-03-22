@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./homePage.css";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { useRouter } from "next/navigation";
-import { getAllProjects, ProjectSummary } from "@/lib/projectApi";
-import { getAllRecruitments, RecruitmentSummary } from "@/lib/recruitmentApi";
+import { getAllProjects, getProjectCount, ProjectSummary } from "@/lib/projectApi";
+import { getAllRecruitments, getRecruitmentCount, RecruitmentSummary } from "@/lib/recruitmentApi";
 
 /* Types */
 export interface FeedMember {
@@ -101,6 +101,35 @@ function mapRecruitmentToFeedItem(r: RecruitmentSummary): RecruitmentFeedItem {
     other_count: 0,
     team_members: r.recruiters?.map(m => ({ id: m.id, name: m.fullname, avatar_url: getFullUrl(m.profile_picture_url) })) || [],
   };
+}
+
+/* Pagination helpers */
+function buildPageSequence(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+  const pages: (number | "…")[] = [];
+
+  const addRange = (from: number, to: number) => {
+    for (let i = from; i <= to; i++) pages.push(i);
+  };
+
+  pages.push(1);
+
+  if (current <= 4) {
+    addRange(2, 5);
+    pages.push("…");
+    pages.push(total);
+  } else if (current >= total - 3) {
+    pages.push("…");
+    addRange(total - 4, total);
+  } else {
+    pages.push("…");
+    addRange(current - 1, current + 1);
+    pages.push("…");
+    pages.push(total);
+  }
+
+  return pages;
 }
 
 /* Team Panel */
@@ -229,17 +258,52 @@ const RecruitmentCard: React.FC<{ item: RecruitmentFeedItem; onClick: () => void
   );
 };
 
-/* Icons */
-const RecruitIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
-  </svg>
-);
-const ProjectIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
-  </svg>
-);
+/* Pagination Bar */
+const PaginationBar: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}> = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  const sequence = buildPageSequence(currentPage, totalPages);
+
+  return (
+    <div className="pagination">
+      <button
+        className="pagination__btn pagination__btn--arrow"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        aria-label="Previous page"
+      >
+        ‹
+      </button>
+
+      {sequence.map((item, i) =>
+        item === "…" ? (
+          <span key={`ellipsis-${i}`} className="pagination__ellipsis">…</span>
+        ) : (
+          <button
+            key={item}
+            className={`pagination__btn${item === currentPage ? " pagination__btn--active" : ""}`}
+            onClick={() => onPageChange(item as number)}
+          >
+            {item}
+          </button>
+        )
+      )}
+
+      <button
+        className="pagination__btn pagination__btn--arrow"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        aria-label="Next page"
+      >
+        ›
+      </button>
+    </div>
+  );
+};
 
 /* Loading Skeleton */
 const FeedSkeleton = () => (
@@ -261,17 +325,16 @@ const FeedSkeleton = () => (
   </div>
 );
 
-/* Spinner */
-const FetchMoreSpinner = () => (
-  <div style={{ display: "flex", justifyContent: "center", padding: "20px 0" }}>
-    <div style={{
-      width: 24, height: 24,
-      border: "3px solid var(--border-color)",
-      borderTop: "3px solid var(--color-teal)",
-      borderRadius: "50%",
-      animation: "spin 0.8s linear infinite",
-    }} />
-  </div>
+/* Icons */
+const RecruitIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+  </svg>
+);
+const ProjectIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+  </svg>
 );
 
 /* Main: HomePage */
@@ -281,35 +344,39 @@ const LIMIT = 10;
 
 const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>("project");
-  const router = useRouter();
+  const router  = useRouter();
+  const feedRef = useRef<HTMLDivElement>(null);
 
   // Each tab has its own independent state
-  const [projects, setProjects]             = useState<ProjectFeedItem[]>([]);
-  const [projectsSkip, setProjectsSkip]     = useState(0);
-  const [projectsHasMore, setProjectsHasMore] = useState(true);
-  const [projectsLoading, setProjectsLoading] = useState(false);
-  const [projectsInitialized, setProjectsInitialized] = useState(false); // has first fetch happened?
-  const [projectsError, setProjectsError]   = useState<string | null>(null);
+  const [projects, setProjects]                         = useState<ProjectFeedItem[]>([]);
+  const [projectsPage, setProjectsPage]                 = useState(1);
+  const [projectsTotalPages, setProjectsTotalPages]     = useState(1);
+  const [projectsLoading, setProjectsLoading]           = useState(false);
+  const [projectsInitialized, setProjectsInitialized]   = useState(false);
+  const [projectsError, setProjectsError]               = useState<string | null>(null);
 
-  const [recruitments, setRecruitments]             = useState<RecruitmentFeedItem[]>([]);
-  const [recruitmentsSkip, setRecruitmentsSkip]     = useState(0);
-  const [recruitmentsHasMore, setRecruitmentsHasMore] = useState(true);
-  const [recruitmentsLoading, setRecruitmentsLoading] = useState(false);
-  const [recruitmentsInitialized, setRecruitmentsInitialized] = useState(false);
-  const [recruitmentsError, setRecruitmentsError]   = useState<string | null>(null);
-
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [recruitments, setRecruitments]                         = useState<RecruitmentFeedItem[]>([]);
+  const [recruitmentsPage, setRecruitmentsPage]                 = useState(1);
+  const [recruitmentsTotalPages, setRecruitmentsTotalPages]     = useState(1);
+  const [recruitmentsLoading, setRecruitmentsLoading]           = useState(false);
+  const [recruitmentsInitialized, setRecruitmentsInitialized]   = useState(false);
+  const [recruitmentsError, setRecruitmentsError]               = useState<string | null>(null);
 
   // Fetch functions
-  const fetchProjects = useCallback(async (skip: number) => {
-    if (projectsLoading) return;
+  const fetchProjects = async (page: number) => {
     setProjectsLoading(true);
     setProjectsError(null);
     try {
-      const raw = await getAllProjects(skip, LIMIT);
-      setProjects(prev => skip === 0 ? raw.map(mapProjectToFeedItem) : [...prev, ...raw.map(mapProjectToFeedItem)]);
-      setProjectsSkip(skip + raw.length);
-      setProjectsHasMore(raw.length === LIMIT); // if we got less than LIMIT, no more pages
+      const skip = (page - 1) * LIMIT;
+      const [raw, total] = await Promise.all([
+        getAllProjects(skip, LIMIT),
+        projectsInitialized ? Promise.resolve(null) : getProjectCount(),
+      ]);
+      setProjects(raw.map(mapProjectToFeedItem));
+      setProjectsPage(page);
+      if (total !== null) {
+        setProjectsTotalPages(Math.max(1, Math.ceil(total / LIMIT)));
+      }
       setProjectsInitialized(true);
     } catch (err: any) {
       if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
@@ -317,17 +384,22 @@ const HomePage: React.FC = () => {
     } finally {
       setProjectsLoading(false);
     }
-  }, [projectsLoading]);
+  };
 
-  const fetchRecruitments = useCallback(async (skip: number) => {
-    if (recruitmentsLoading) return;
+  const fetchRecruitments = async (page: number) => {
     setRecruitmentsLoading(true);
     setRecruitmentsError(null);
     try {
-      const raw = await getAllRecruitments(skip, LIMIT);
-      setRecruitments(prev => skip === 0 ? raw.map(mapRecruitmentToFeedItem) : [...prev, ...raw.map(mapRecruitmentToFeedItem)]);
-      setRecruitmentsSkip(skip + raw.length);
-      setRecruitmentsHasMore(raw.length === LIMIT);
+      const skip = (page - 1) * LIMIT;
+      const [raw, total] = await Promise.all([
+        getAllRecruitments(skip, LIMIT),
+        recruitmentsInitialized ? Promise.resolve(null) : getRecruitmentCount(),
+      ]);
+      setRecruitments(raw.map(mapRecruitmentToFeedItem));
+      setRecruitmentsPage(page);
+      if (total !== null) {
+        setRecruitmentsTotalPages(Math.max(1, Math.ceil(total / LIMIT)));
+      }
       setRecruitmentsInitialized(true);
     } catch (err: any) {
       if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
@@ -335,51 +407,40 @@ const HomePage: React.FC = () => {
     } finally {
       setRecruitmentsLoading(false);
     }
-  }, [recruitmentsLoading]);
+  };
 
   useEffect(() => {
-    fetchProjects(0);
+    fetchProjects(1);
   }, []);
 
   useEffect(() => {
     if (activeTab === "recruitment" && !recruitmentsInitialized) {
-      fetchRecruitments(0);
+      fetchRecruitments(1);
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+  const handleProjectPageChange = (page: number) => {
+    feedRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    fetchProjects(page);
+  };
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries[0].isIntersecting) return;
-        if (activeTab === "project" && projectsHasMore && !projectsLoading) {
-          fetchProjects(projectsSkip);
-        }
-        if (activeTab === "recruitment" && recruitmentsHasMore && !recruitmentsLoading) {
-          fetchRecruitments(recruitmentsSkip);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect(); // cleanup on unmount or re-run
-  }, [activeTab, projectsHasMore, projectsLoading, projectsSkip, recruitmentsHasMore, recruitmentsLoading, recruitmentsSkip]);
+  const handleRecruitmentPageChange = (page: number) => {
+    feedRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    fetchRecruitments(page);
+  };
 
   // Render
 
   const projectRows     = chunkPairs(projects);
   const recruitmentRows = chunkPairs(recruitments);
 
-  const isProjectTab     = activeTab === "project";
-  const isRecruitTab     = activeTab === "recruitment";
+  const isProjectTab  = activeTab === "project";
+  const isRecruitTab  = activeTab === "recruitment";
 
-  const showProjectSkeleton    = isProjectTab  && !projectsInitialized  && projectsLoading;
-  const showRecruitSkeleton    = isRecruitTab  && !recruitmentsInitialized && recruitmentsLoading;
-  const showProjectError       = isProjectTab  && !!projectsError;
-  const showRecruitError       = isRecruitTab  && !!recruitmentsError;
+  const showProjectSkeleton  = isProjectTab && !projectsInitialized  && projectsLoading;
+  const showRecruitSkeleton  = isRecruitTab && !recruitmentsInitialized && recruitmentsLoading;
+  const showProjectError     = isProjectTab && !!projectsError;
+  const showRecruitError     = isRecruitTab && !!recruitmentsError;
 
   return (
     <div className="app-shell">
@@ -406,10 +467,14 @@ const HomePage: React.FC = () => {
           </div>
 
           {/* Feed */}
-          <div className="home-feed">
+          <div className="home-feed" ref={feedRef}>
 
             {/* Skeletons on first load */}
             {(showProjectSkeleton || showRecruitSkeleton) && <FeedSkeleton />}
+
+            {/* Skeleton on page change (already initialized) */}
+            {isProjectTab  && projectsInitialized  && projectsLoading  && <FeedSkeleton />}
+            {isRecruitTab  && recruitmentsInitialized && recruitmentsLoading && <FeedSkeleton />}
 
             {/* Error states */}
             {showProjectError && (
@@ -424,7 +489,7 @@ const HomePage: React.FC = () => {
             )}
 
             {/* Projects feed */}
-            {isProjectTab && projectsInitialized && !projectsError && (
+            {isProjectTab && projectsInitialized && !projectsLoading && !projectsError && (
               projectRows.length === 0
                 ? <p style={{ color: "var(--text-muted)", fontSize: 14, padding: "20px 0" }}>No projects yet.</p>
                 : projectRows.map((row, ri) => (
@@ -437,7 +502,7 @@ const HomePage: React.FC = () => {
             )}
 
             {/* Recruitments feed */}
-            {isRecruitTab && recruitmentsInitialized && !recruitmentsError && (
+            {isRecruitTab && recruitmentsInitialized && !recruitmentsLoading && !recruitmentsError && (
               recruitmentRows.length === 0
                 ? <p style={{ color: "var(--text-muted)", fontSize: 14, padding: "20px 0" }}>No recruitments yet.</p>
                 : recruitmentRows.map((row, ri) => (
@@ -449,24 +514,21 @@ const HomePage: React.FC = () => {
                   ))
             )}
 
-            {/* Bottom spinner while fetching next page */}
-            {(isProjectTab && projectsLoading && projectsInitialized) && <FetchMoreSpinner />}
-            {(isRecruitTab && recruitmentsLoading && recruitmentsInitialized) && <FetchMoreSpinner />}
-
-            {/* End of feed message */}
-            {isProjectTab  && projectsInitialized  && !projectsHasMore  && projects.length > 0 && (
-              <p style={{ color: "var(--text-muted)", fontSize: 12, textAlign: "center", padding: "12px 0" }}>
-                You've reached the end.
-              </p>
+            {/* Pagination bars */}
+            {isProjectTab && projectsInitialized && !projectsLoading && !projectsError && (
+              <PaginationBar
+                currentPage={projectsPage}
+                totalPages={projectsTotalPages}
+                onPageChange={handleProjectPageChange}
+              />
             )}
-            {isRecruitTab  && recruitmentsInitialized  && !recruitmentsHasMore  && recruitments.length > 0 && (
-              <p style={{ color: "var(--text-muted)", fontSize: 12, textAlign: "center", padding: "12px 0" }}>
-                You've reached the end.
-              </p>
+            {isRecruitTab && recruitmentsInitialized && !recruitmentsLoading && !recruitmentsError && (
+              <PaginationBar
+                currentPage={recruitmentsPage}
+                totalPages={recruitmentsTotalPages}
+                onPageChange={handleRecruitmentPageChange}
+              />
             )}
-
-            {/* Invisible sentinel div — IntersectionObserver watches this */}
-            <div ref={sentinelRef} style={{ height: 1 }} />
 
           </div>
         </main>

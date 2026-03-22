@@ -104,6 +104,15 @@ export async function uploadProjectMedia(projectId: string, files: File[]): Prom
   }
 }
 
+export async function getProjectCount(): Promise<number> {
+  const res = await fetch(`${API}/count`, {
+    headers: { ...authHeaders() },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(extractError(data, "Failed to fetch project count"));
+  return data.count as number;
+}
+
 export async function getProject(projectId: string): Promise<ProjectPublic> {
   const res = await fetch(`${API}/${projectId}`, {
     headers: { ...authHeaders() },

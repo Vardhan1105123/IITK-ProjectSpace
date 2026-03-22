@@ -234,9 +234,22 @@ export default function EditRecruitmentPage() {
           {/* Form */}
           {!loading && !error && (
             <>
-              <p className="pcf-faq-hint">
-                Edit your recruitment details below. Changes will be saved once you click Save Changes.
-              </p>
+              <div className="edit-page__actions">
+                <button className="edit-page__action-btn" onClick={() => router.push(`/recruitmentPage?id=${recruitmentId}`)} disabled={isSubmitting}>
+                  ← Go Back
+                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  {submitError && (
+                    <p style={{ color: "#a53d2a", fontSize: 13, margin: 0 }}>{submitError}</p>
+                  )}
+                  <button className="edit-page__action-btn edit-page__action-btn--destructive" onClick={() => setShowConfirm(true)} disabled={isSubmitting}>
+                    Delete Recruitment
+                  </button>
+                  <button className="edit-page__action-btn" onClick={handleSave} disabled={isSubmitting}>
+                    {isSubmitting ? "Saving…" : "Save Changes"}
+                  </button>
+                </div>
+              </div>
 
               <div className="pcf-form-container">
 
@@ -385,20 +398,7 @@ export default function EditRecruitmentPage() {
                   </div>
                 </section>
 
-                {/* Error */}
-                {submitError && (
-                  <p style={{ color: "#a53d2a", fontSize: 13, textAlign: "right" }}>{submitError}</p>
-                )}
 
-                {/* Save / Delete */}
-                <div className="pcf-submit-row" style={{ justifyContent: "space-between" }}>
-                  <button className="pcf-submit-btn" style={{ background: "#a53d2a" }} onClick={() => setShowConfirm(true)} disabled={isSubmitting}>
-                    Delete Recruitment
-                  </button>
-                  <button className="pcf-submit-btn" onClick={handleSave} disabled={isSubmitting}>
-                    {isSubmitting ? "Saving..." : "Save Changes"}
-                  </button>
-                </div>
 
                 {showConfirm && (
                   <ConfirmPopUp

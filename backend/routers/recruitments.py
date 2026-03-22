@@ -24,6 +24,7 @@ from crud.recruitment import (
     create_recruitment,
     get_recruitment_by_id,
     get_all_recruitments,
+    count_recruitments,
     update_recruitment,
     delete_recruitment,
     create_application,
@@ -52,6 +53,12 @@ def read_recruitments(
 ):
     """Returns a lightweight list of recruitment cards."""
     return get_all_recruitments(session=db, skip=skip, limit=limit)
+
+
+@router.get("/count")
+def get_recruitment_count(db: Session = Depends(get_session)):
+    """Returns the total number of recruitments."""
+    return {"count": count_recruitments(session=db)}
 
 
 @router.get("/{recruitment_id}", response_model=RecruitmentPublic)
@@ -93,7 +100,7 @@ def delete_existing_recruitment(
     delete_recruitment(session=db, db_recruitment=recruitment)
 
 
-# --- Recruiter management ---
+# Recruiter management
 
 @router.post("/{recruitment_id}/recruiters/{user_id}", response_model=RecruitmentPublic)
 def add_recruiter(

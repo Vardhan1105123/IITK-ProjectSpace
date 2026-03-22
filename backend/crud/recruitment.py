@@ -1,4 +1,4 @@
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 from models.recruitments import Recruitment, Application, RecruitmentRecruiterLink
 from models.user import User
 from schemas.recruitments import RecruitmentCreate, RecruitmentUpdate, ApplicationCreate, ApplicationUpdate
@@ -57,6 +57,10 @@ def get_all_recruitments(session: Session, skip: int = 0, limit: int = 10) -> Se
         if r.creator is None:
             r.creator = session.get(User, r.creator_id)
     return recruitments
+
+def count_recruitments(session: Session) -> int:
+    statement = select(func.count()).select_from(Recruitment)
+    return session.exec(statement).one()
 
 def update_recruitment(session: Session, db_recruitment: Recruitment, recruitment_update: RecruitmentUpdate) -> Recruitment:
     update_data = recruitment_update.model_dump(exclude_unset=True)

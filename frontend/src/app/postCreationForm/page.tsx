@@ -56,7 +56,31 @@ export default function PostCreationForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const SKILLS = skillsData;
-  const DEPARTMENTS = ["AE", "BSBE", "CHE", "CHM", "CE", "CGS", "CSE", "DES", "ES", "ECO", "EE", "HSS", "IS", "MSE", "MTH", "ME", "NET", "DOMS", "PHY", "SPASE", "SDS", "SEE"];
+  const DEPARTMENTS = [ 
+    "Aerospace Engineering(AE)",
+    "Biological Sciences and Bio-Engineering(BSBE)",
+    "Chemical Engineering(CHE)",
+    "Chemistry(CHM)",
+    "Civil Engineering(CE)",
+    "Cognitive Science(CGS)",
+    "Computer Science and Engineering(CSE)",
+    "Design(DES)",
+    "Earth Sciences(ES)",
+    "Economics(ECO)",
+    "Electrical Engineering(EE)",
+    "Humanities and Social Sciences(HSS)",
+    "Intelligent Systems",
+    "Management Sciences(DoMS)",
+    "Material Science and Engineering(MSE)",
+    "Mathematics and Scientific Computing(MTH)",
+    "Mechanical Engineering(ME)",
+    "Nuclear Engineering and Technology(NET)",
+    "Photonics Science and Engineering(PSE)",
+    "Physics(PHY)",
+    "Space, Planetary and Astronomical Sciences and Engineering(SPASE)",
+    "Statistics and Data Science(SDS)",
+    "Sustainable Energy Engineering(SEE)"
+  ];
   const DESIGNATIONS = ["UG_STUDENT", "PG_STUDENT", "PHD", "POSTDOC"];
 
   useEffect(() => {

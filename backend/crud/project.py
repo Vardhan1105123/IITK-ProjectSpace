@@ -1,4 +1,4 @@
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 from models.project import Project, ProjectTeamLink
 from models.user import User
 from schemas.project import ProjectCreate, ProjectUpdate
@@ -48,6 +48,10 @@ def get_all_projects(session: Session, skip: int = 0, limit: int = 10) -> Sequen
         if p.creator is None:
             p.creator = session.get(User, p.creator_id)
     return projects
+
+def count_projects(session: Session) -> int:
+    statement = select(func.count()).select_from(Project)
+    return session.exec(statement).one()
 
 def update_project(session: Session, db_project: Project, project_update: ProjectUpdate) -> Project:
     update_data = project_update.model_dump(exclude_unset=True)

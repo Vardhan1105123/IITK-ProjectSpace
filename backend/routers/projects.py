@@ -16,6 +16,7 @@ from crud.project import (
     create_project,
     get_project_by_id,
     get_all_projects,
+    count_projects,
     update_project,
     delete_project,
     add_user_to_project_team,
@@ -41,6 +42,12 @@ def read_projects(
     skip: int = 0, limit: int = 100, db: Session = Depends(get_session)
 ):
     return get_all_projects(session=db, skip=skip, limit=limit)
+
+
+@router.get("/count")
+def get_project_count(db: Session = Depends(get_session)):
+    """Returns the total number of projects."""
+    return {"count": count_projects(session=db)}
 
 
 @router.get("/{project_id}", response_model=ProjectPublic)
