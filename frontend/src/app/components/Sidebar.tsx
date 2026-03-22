@@ -116,6 +116,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const onLogout = () => {
     localStorage.removeItem("access_token");
+    localStorage.removeItem("sidebar-expanded");
     router.push("/auth");
   };
 

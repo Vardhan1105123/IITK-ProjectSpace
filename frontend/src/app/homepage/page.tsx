@@ -132,6 +132,179 @@ function buildPageSequence(current: number, total: number): (number | "…")[] {
   return pages;
 }
 
+/* Share Popup */
+interface SharePlatform {
+  id: string;
+  label: string;
+  color: string;
+  icon: React.ReactNode;
+  getHref: (url: string) => string;
+}
+
+const SHARE_PLATFORMS: SharePlatform[] = [
+  {
+    id: "whatsapp",
+    label: "WhatsApp",
+    color: "#25D366",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 32 32" fill="currentColor">
+        <path d="M16 3C8.82 3 3 8.82 3 16c0 2.33.63 4.51 1.72 6.39L3 29l6.77-1.7A13 13 0 0 0 16 29c7.18 0 13-5.82 13-13S23.18 3 16 3zm0 2c6.07 0 11 4.93 11 11s-4.93 11-11 11c-2.01 0-3.89-.54-5.5-1.49l-.39-.23-4.02 1.01 1.03-3.91-.26-.41A10.96 10.96 0 0 1 5 16C5 9.93 9.93 5 16 5zm-3.07 5.5c-.22 0-.57.08-.87.41-.3.33-1.13 1.1-1.13 2.68s1.16 3.1 1.32 3.32c.17.21 2.24 3.56 5.51 4.85 2.72 1.08 3.28.86 3.87.81.59-.05 1.9-.78 2.17-1.53.27-.75.27-1.39.19-1.53-.08-.13-.3-.21-.63-.37-.33-.16-1.9-.94-2.2-1.05-.29-.1-.5-.16-.71.16-.21.33-.82 1.05-1 1.26-.19.21-.37.24-.7.08-.33-.16-1.38-.51-2.63-1.62-.97-.87-1.63-1.94-1.82-2.27-.19-.33-.02-.51.14-.67.15-.15.33-.37.5-.56.16-.19.21-.33.32-.54.1-.21.05-.4-.03-.56-.08-.16-.7-1.75-.97-2.39-.25-.61-.51-.53-.71-.54l-.6-.01z"/>
+      </svg>
+    ),
+    getHref: (url) => `https://wa.me/?text=${encodeURIComponent(url)}`,
+  },
+  {
+    id: "email",
+    label: "Email",
+    color: "#6b7280",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+        <polyline points="22,6 12,13 2,6"/>
+      </svg>
+    ),
+    getHref: (url) => `mailto:?subject=Check this out on IITK ProjectSpace&body=${encodeURIComponent(url)}`,
+  },
+  {
+    id: "linkedin",
+    label: "LinkedIn",
+    color: "#0A66C2",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+      </svg>
+    ),
+    getHref: (url) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+  },
+  {
+    id: "x",
+    label: "X",
+    color: "#000000",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.91-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+    ),
+    getHref: (url) => `https://x.com/intent/tweet?url=${encodeURIComponent(url)}`,
+  },
+  {
+    id: "reddit",
+    label: "Reddit",
+    color: "#FF4500",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+      </svg>
+    ),
+    getHref: (url) => `https://reddit.com/submit?url=${encodeURIComponent(url)}&subreddit=IITK`,
+  },
+];
+
+const SharePopup: React.FC<{
+  url: string;
+  onClose: () => void;
+}> = ({ url, onClose }) => {
+  const [copied, setCopied] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      inputRef.current?.select();
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePlatformClick = (platform: SharePlatform) => {
+    window.open(platform.getHref(url), "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="share-backdrop" onClick={onClose} />
+      {/* Panel */}
+      <div className="share-popup" onClick={(e) => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="share-popup__header">
+          <span className="share-popup__title">Share</span>
+          <button className="share-popup__close" onClick={onClose} aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Platform icons */}
+        <div className="share-popup__platforms">
+          {SHARE_PLATFORMS.map((platform) => (
+            <button
+              key={platform.id}
+              className="share-popup__platform-btn"
+              onClick={() => handlePlatformClick(platform)}
+              aria-label={`Share on ${platform.label}`}
+            >
+              <span
+                className="share-popup__platform-icon"
+                style={{ background: platform.color, color: "#fff" }}
+              >
+                {platform.icon}
+              </span>
+              <span className="share-popup__platform-label">{platform.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <hr className="share-popup__divider" />
+
+        {/* Copy link row */}
+        <div className="share-popup__row">
+          <input
+            ref={inputRef}
+            className="share-popup__input"
+            value={url}
+            readOnly
+            onFocus={(e) => e.target.select()}
+          />
+          <button
+            className={`share-popup__copy-btn${copied ? " share-popup__copy-btn--copied" : ""}`}
+            onClick={handleCopy}
+          >
+            {copied ? (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                Copy link
+              </>
+            )}
+          </button>
+        </div>
+
+      </div>
+    </>
+  );
+};
+
 /* Team Panel */
 const TeamPanel: React.FC<{ members: FeedMember[] }> = ({ members }) => (
   <div className="feed-team-panel">
@@ -154,34 +327,30 @@ const TeamPanel: React.FC<{ members: FeedMember[] }> = ({ members }) => (
 );
 
 /* Action Bar */
-const ActionBar: React.FC = () => {
-  const [liked, setLiked] = useState(false);
-  return (
-    <div className="feed-actions">
-      <button className={`feed-action-btn${liked ? " liked" : ""}`} onClick={(e) => { e.stopPropagation(); setLiked(v => !v); }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" />
-          <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
-        </svg>
-        Like
-      </button>
-      <button className="feed-action-btn" onClick={(e) => e.stopPropagation()}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-        Comment
-      </button>
-      <button className="feed-action-btn" onClick={(e) => e.stopPropagation()}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-        </svg>
-        Share
-      </button>
-    </div>
-  );
-};
+const ActionBar: React.FC<{
+  shareUrl: string;
+  onOpenShare: (url: string) => void;
+}> = ({ shareUrl, onOpenShare }) => (
+  <div className="feed-actions">
+    <button className="feed-action-btn" onClick={(e) => e.stopPropagation()}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+      Comment
+    </button>
+    <button
+      className="feed-action-btn"
+      onClick={(e) => { e.stopPropagation(); onOpenShare(shareUrl); }}
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+      </svg>
+      Share
+    </button>
+  </div>
+);
 
 /* Post Header */
 const PostHeader: React.FC<{
@@ -205,8 +374,13 @@ const PostHeader: React.FC<{
 );
 
 /* Project Card */
-const ProjectCard: React.FC<{ item: ProjectFeedItem; onClick: () => void }> = ({ item, onClick }) => {
+const ProjectCard: React.FC<{
+  item: ProjectFeedItem;
+  onClick: () => void;
+  onOpenShare: (url: string) => void;
+}> = ({ item, onClick, onOpenShare }) => {
   const hasImage = item.media_urls.length > 0;
+  const shareUrl = `${window.location.origin}/projectPage?id=${item.id}`;
   return (
     <div className="feed-group" onClick={onClick} style={{ cursor: "pointer" }}>
       <TeamPanel members={item.team_members} />
@@ -223,16 +397,21 @@ const ProjectCard: React.FC<{ item: ProjectFeedItem; onClick: () => void }> = ({
         ) : (
           <p className="feed-snippet-plain">{item.description}</p>
         )}
-        <ActionBar />
+        <ActionBar shareUrl={shareUrl} onOpenShare={onOpenShare} />
       </div>
     </div>
   );
 };
 
 /* Recruitment Card */
-const RecruitmentCard: React.FC<{ item: RecruitmentFeedItem; onClick: () => void }> = ({ item, onClick }) => {
+const RecruitmentCard: React.FC<{
+  item: RecruitmentFeedItem;
+  onClick: () => void;
+  onOpenShare: (url: string) => void;
+}> = ({ item, onClick, onOpenShare }) => {
   const hasImage = item.media_urls.length > 0;
   const isOpen = item.status === "Open";
+  const shareUrl = `${window.location.origin}/recruitmentPage?id=${item.id}`;
   return (
     <div className="feed-group" onClick={onClick} style={{ cursor: "pointer" }}>
       <TeamPanel members={item.team_members} />
@@ -252,7 +431,7 @@ const RecruitmentCard: React.FC<{ item: RecruitmentFeedItem; onClick: () => void
         ) : (
           <p className="feed-snippet-plain">{item.description}</p>
         )}
-        <ActionBar />
+        <ActionBar shareUrl={shareUrl} onOpenShare={onOpenShare} />
       </div>
     </div>
   );
@@ -347,6 +526,9 @@ const HomePage: React.FC = () => {
   const router  = useRouter();
   const feedRef = useRef<HTMLDivElement>(null);
 
+  // Share popup state
+  const [sharePopupUrl, setSharePopupUrl] = useState<string | null>(null);
+
   // Each tab has its own independent state
   const [projects, setProjects]                         = useState<ProjectFeedItem[]>([]);
   const [projectsPage, setProjectsPage]                 = useState(1);
@@ -361,6 +543,9 @@ const HomePage: React.FC = () => {
   const [recruitmentsLoading, setRecruitmentsLoading]           = useState(false);
   const [recruitmentsInitialized, setRecruitmentsInitialized]   = useState(false);
   const [recruitmentsError, setRecruitmentsError]               = useState<string | null>(null);
+
+  // Share handler — opens the share popup
+  const handleOpenShare = (url: string) => setSharePopupUrl(url);
 
   // Fetch functions
   const fetchProjects = async (page: number) => {
@@ -446,6 +631,12 @@ const HomePage: React.FC = () => {
     <div className="app-shell">
       <Header showEditProfile={false} />
 
+      {/* Global toast — rendered outside the feed so it always floats on top */}
+      {/* Share popup */}
+      {sharePopupUrl && (
+        <SharePopup url={sharePopupUrl} onClose={() => setSharePopupUrl(null)} />
+      )}
+
       <div className="app-body">
         <Sidebar defaultActive="home" />
 
@@ -495,7 +686,12 @@ const HomePage: React.FC = () => {
                 : projectRows.map((row, ri) => (
                     <div className="feed-row" key={ri}>
                       {row.map((p) => (
-                        <ProjectCard key={p.id} item={p} onClick={() => router.push(`/projectPage?id=${p.id}`)} />
+                        <ProjectCard
+                          key={p.id}
+                          item={p}
+                          onClick={() => router.push(`/projectPage?id=${p.id}`)}
+                          onOpenShare={handleOpenShare}
+                        />
                       ))}
                     </div>
                   ))
@@ -508,7 +704,12 @@ const HomePage: React.FC = () => {
                 : recruitmentRows.map((row, ri) => (
                     <div className="feed-row" key={ri}>
                       {row.map((r) => (
-                        <RecruitmentCard key={r.id} item={r} onClick={() => router.push(`/recruitmentPage?id=${r.id}`)} />
+                        <RecruitmentCard
+                          key={r.id}
+                          item={r}
+                          onClick={() => router.push(`/recruitmentPage?id=${r.id}`)}
+                          onOpenShare={handleOpenShare}
+                        />
                       ))}
                     </div>
                   ))

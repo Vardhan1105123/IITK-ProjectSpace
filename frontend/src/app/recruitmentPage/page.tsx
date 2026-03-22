@@ -210,7 +210,7 @@ const RecruitmentPage: React.FC = () => {
   const isRecruiter = recruitment?.recruiters?.some((r) => r.id === currentUserId) ?? false;
   const isOpen     = recruitment?.status === "Open";
   const wasUpdated = recruitment ? recruitment.updated_at !== recruitment.created_at : false;
-  const hasApplied = recruitment?.applications?.some((app: any) => app.applicant_id === currentUserId || app.user_id === currentUserId) ?? false;
+  const hasApplied = recruitment?.applications?.some((app: any) => app.applicant?.id === currentUserId) ?? false;
 
   let applyText = "Apply";
   if (applying) applyText = "Applying...";

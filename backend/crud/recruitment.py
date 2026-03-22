@@ -1,4 +1,5 @@
 from sqlmodel import Session, select, func
+from fastapi import HTTPException, status
 from models.recruitments import Recruitment, Application, RecruitmentRecruiterLink
 from models.user import User
 from schemas.recruitments import RecruitmentCreate, RecruitmentUpdate, ApplicationCreate, ApplicationUpdate
@@ -79,17 +80,33 @@ def update_recruitment(session: Session, db_recruitment: Recruitment, recruitmen
     return db_recruitment
 
 def delete_recruitment(session: Session, db_recruitment: Recruitment) -> None:
+    session.query(Application)\
+        .filter(Application.recruitment_id == db_recruitment.id)\
+        .delete()
     session.delete(db_recruitment)
     session.commit()
 
 ## Application CRUD
 
 def create_application(session: Session, app_create: ApplicationCreate, applicant_id: uuid.UUID) -> Application:
+    # Prevent duplicate applications from the same user to the same recruitment
+    existing = session.exec(
+        select(Application)
+        .where(Application.recruitment_id == app_create.recruitment_id)
+        .where(Application.applicant_id == applicant_id)
+    ).first()
+
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You have already applied to this recruitment.",
+        )
+
     db_application = Application(
         recruitment_id=app_create.recruitment_id,
         applicant_id=applicant_id,
         message=app_create.message,
-        status="Pending"
+        status="Pending",
     )
 
     session.add(db_application)

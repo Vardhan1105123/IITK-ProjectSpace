@@ -81,7 +81,7 @@
   flex-direction: row;
   flex: 1 1 0;
   min-width: 0;
-  max-width: calc(50%-9px);
+  max-width: calc(50% - 9px);
   height: 420px;
   background: var(--bg-card);
   border-radius: 16px;
@@ -380,4 +380,186 @@
   font-size: 14px;
   color: var(--text-muted);
   user-select: none;
+}
+/* Share popup */
+.share-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: transparent;
+}
+
+.share-popup {
+  position: fixed;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+
+  width: 360px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+  padding: 16px 18px 18px;
+  animation: sharePopupIn 0.18s ease both;
+}
+
+@keyframes sharePopupIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.share-popup__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.share-popup__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.share-popup__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.share-popup__close:hover {
+  color: var(--text-primary);
+  background: var(--bg-page);
+}
+
+/* Platform icons row */
+.share-popup__platforms {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.share-popup__platform-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 4px;
+  border-radius: 10px;
+  flex: 1;
+  transition: background 0.15s;
+}
+
+.share-popup__platform-btn:hover {
+  background: var(--bg-page);
+}
+
+.share-popup__platform-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.share-popup__platform-btn:hover .share-popup__platform-icon {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.share-popup__platform-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-family: inherit;
+}
+
+/* Divider */
+.share-popup__divider {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 14px 0 14px;
+}
+
+/* Copy link row */
+.share-popup__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 8px;
+}
+
+.share-popup__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.share-popup__input {
+  flex: 1;
+  padding: 8px 11px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-page);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  outline: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: text;
+  transition: border-color 0.15s;
+}
+
+.share-popup__input:focus {
+  border-color: var(--color-sky);
+}
+
+.share-popup__copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--color-dark);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.share-popup__copy-btn:hover {
+  background: var(--color-darkest);
+  transform: translateY(-1px);
+}
+
+.share-popup__copy-btn--copied {
+  background: #1a9e72;
+}
+
+.share-popup__copy-btn--copied:hover {
+  background: #158a62;
 }
