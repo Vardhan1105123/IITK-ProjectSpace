@@ -104,7 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     onNavigate?.(id);
 
     const routes: Record<string, string> = {
-      home: "/homePage",
+      home: "/homepage",
       search: "/searchPage",
       alerts: "/notificationPage",
       profile: "/profilePage",

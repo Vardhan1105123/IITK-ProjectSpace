@@ -137,7 +137,7 @@ export default function EditRecruitmentPage() {
   const handleDelete = async () => {
     try {
       await deleteRecruitment(recruitmentId);
-      router.replace("/homePage");
+      router.replace("/homepage");
     } catch (err: any) {
       if (err.message === "Unauthorized") { router.replace("/auth"); return; }
       setSubmitError(err.message || "Failed to delete recruitment.");
