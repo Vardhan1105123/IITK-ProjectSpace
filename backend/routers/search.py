@@ -24,6 +24,7 @@ def search_users_endpoint(
     designation: Optional[Designation] = Query(default=None),
     degree: Optional[Degree] = Query(default=None),
     department: Optional[Department] = Query(default=None),
+    skill: Optional[str] = Query(default=None, description="Filter by skill (exact match in array)"),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     session: Session = Depends(get_session),
@@ -42,6 +43,7 @@ def search_users_endpoint(
         designation=designation,
         degree=degree,
         department=department,
+        skill=skill,
         limit=limit,
         offset=offset,
     )

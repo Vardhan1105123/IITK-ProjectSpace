@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, computed_field
-from typing import Optional, List
+from pydantic import BaseModel, Field, computed_field, field_validator
+from typing import Optional, List, Any
 import uuid
 from datetime import datetime
 from core.utils import Degree, Department, Designation
@@ -88,6 +88,30 @@ class RecruitmentSearchResult(BaseModel):
     status: str
     created_at: datetime
     recruiters: List[uuid.UUID] = []  # list of recruiter user IDs
+    creator_id: uuid.UUID
+
+    @computed_field
+    @property
+    def creator_name(self) -> str:
+        creator = getattr(self, "creator", None)
+        if creator is not None:
+            return creator.fullname or ""
+        return ""
+
+    @computed_field
+    @property
+    def creator_avatar_url(self) -> Optional[str]:
+        creator = getattr(self, "creator", None)
+        if creator is not None:
+            return creator.profile_picture_url
+        return None
+
+    @field_validator("recruiters", mode="before")
+    @classmethod
+    def extract_recruiter_ids(cls, v: Any) -> List[uuid.UUID]:
+        if not v:
+            return []
+        return [item.id if hasattr(item, "id") else item for item in v]
 
     class Config:
         from_attributes = True

@@ -16,6 +16,7 @@ def search_users(
     designation: Designation | None,
     degree: Degree | None,
     department: Department | None,
+    skill: str | None,
     limit: int,
     offset: int,
 ) -> Tuple[List[User], int]:
@@ -40,6 +41,9 @@ def search_users(
         statement = statement.where(User.degree == degree)
     if department:
         statement = statement.where(User.department == department)
+    if skill:
+        statement = statement.where(User.skills.contains([skill]))
+    
 
     # Total count before pagination
     count_stmt = select(func.count()).select_from(statement.subquery())
@@ -56,6 +60,10 @@ def search_users(
 
     statement = statement.offset(offset).limit(limit)
     results = session.exec(statement).all()
+    
+    for p in results:
+        if p.creator is None:
+            p.creator = session.get(User, p.creator_id)
 
     return results, total
 
@@ -103,6 +111,10 @@ def search_projects(
 
     statement = statement.offset(offset).limit(limit)
     results = session.exec(statement).all()
+    
+    for r in results:
+        if r.creator is None:
+            r.creator = session.get(User, r.creator_id)
 
     return results, total
 
