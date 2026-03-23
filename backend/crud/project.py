@@ -59,14 +59,6 @@ def get_project_by_id(session: Session, project_id: uuid.UUID) -> Project | None
             ).one()
     return project
 
-<<<<<<< Updated upstream
-
-def get_all_projects(
-    session: Session, skip: int = 0, limit: int = 10
-) -> Sequence[Project]:
-    statement = (
-        select(Project).order_by(Project.created_at.desc()).offset(skip).limit(limit)
-=======
 def get_all_projects(session: Session, skip: int = 0, limit: int = 10) -> Sequence[Project]:
     statement = (
         select(Project)
@@ -77,7 +69,6 @@ def get_all_projects(session: Session, skip: int = 0, limit: int = 10) -> Sequen
             selectinload(Project.creator),
             selectinload(Project.comments).selectinload(Comment.author)
         )
->>>>>>> Stashed changes
     )
     projects = session.exec(statement).all()
     for project in projects:

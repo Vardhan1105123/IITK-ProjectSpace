@@ -5,16 +5,8 @@ from models.project import Project
 from models.recruitments import Recruitment
 from core.utils import Designation, Degree, Department
 
-<<<<<<< Updated upstream
-# ─────────────────────────────────────────────
-# User Search
-# ─────────────────────────────────────────────
-
-
-=======
 
 # User Search
->>>>>>> Stashed changes
 def search_users(
     session: Session,
     q: str | None,
@@ -59,24 +51,11 @@ def search_users(
 
     statement = statement.offset(offset).limit(limit)
     results = session.exec(statement).all()
-<<<<<<< Updated upstream
-
-    for p in results:
-        if p.creator is None:
-            p.creator = session.get(User, p.creator_id)
-=======
->>>>>>> Stashed changes
 
     return results, total
 
 
 # Project Search
-<<<<<<< Updated upstream
-# ─────────────────────────────────────────────
-
-
-=======
->>>>>>> Stashed changes
 def search_projects(
     session: Session,
     q: str | None,
@@ -123,12 +102,6 @@ def search_projects(
 
 
 # Recruitment Search
-<<<<<<< Updated upstream
-# ─────────────────────────────────────────────
-
-
-=======
->>>>>>> Stashed changes
 def search_recruitments(
     session: Session,
     q: str | None,

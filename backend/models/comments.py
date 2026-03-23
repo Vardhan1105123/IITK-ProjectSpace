@@ -12,19 +12,11 @@ class Comment(SQLModel, table=True):
     project_id: Optional[uuid.UUID] = Field(default=None, foreign_key="project.id", ondelete="CASCADE")
     recruitment_id: Optional[uuid.UUID] = Field(default=None, foreign_key="recruitment.id", ondelete="CASCADE")
     author_id: uuid.UUID = Field(foreign_key="user.id", ondelete="CASCADE")
-<<<<<<< Updated upstream
-=======
     parent_id: Optional[uuid.UUID] = Field(default=None, foreign_key="comment.id", ondelete="CASCADE")
->>>>>>> Stashed changes
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-<<<<<<< Updated upstream
-    # These allow you to type `comment.author.fullname` or `comment.project.title` in your routes
-    project: "Project" = Relationship(back_populates="comments")
-    author: "User" = Relationship(back_populates="comments")
-=======
     # Relationships
     project: Optional["Project"] = Relationship(back_populates="comments")
     recruitment: Optional["Recruitment"] = Relationship(back_populates="comments")
@@ -46,4 +38,3 @@ class Comment(SQLModel, table=True):
             "lazy": "select",
         },
     )
->>>>>>> Stashed changes

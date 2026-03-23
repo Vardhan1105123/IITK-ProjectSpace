@@ -24,20 +24,6 @@ def _get_depth(session: Session, comment_id: uuid.UUID) -> int:
     return depth
 
 
-<<<<<<< Updated upstream
-
-def create_comment(
-    session: Session, comment_create: CommentCreate, author_id: uuid.UUID
-) -> Comment:
-    db_comment = Comment.model_validate(comment_create)
-
-    db_comment.author_id = author_id
-
-    session.add(db_comment)
-    session.commit()
-    session.refresh(db_comment)
-
-=======
 def create_comment(session: Session, comment_create: CommentCreate, author_id: uuid.UUID) -> Comment:
     if not comment_create.project_id and not comment_create.recruitment_id:
         raise HTTPException(
@@ -68,32 +54,12 @@ def create_comment(session: Session, comment_create: CommentCreate, author_id: u
     session.add(db_comment)
     session.commit()
     session.refresh(db_comment)
->>>>>>> Stashed changes
     return db_comment
 
 
 def get_comment_by_id(session: Session, comment_id: uuid.UUID) -> Comment | None:
     return session.get(Comment, comment_id)
 
-<<<<<<< Updated upstream
-
-def get_comments_by_project(
-    session: Session, project_id: uuid.UUID, skip: int = 0, limit: int = 100
-) -> Sequence[Comment]:
-    statement = (
-        select(Comment)
-        .where(Comment.project_id == project_id)
-        .offset(skip)
-        .limit(limit)
-    )
-    return session.exec(statement).all()
-
-
-def update_comment(
-    session: Session, db_comment: Comment, comment_update: CommentUpdate
-) -> Comment:
-    update_data = comment_update.model_dump(exclude_unset=True)
-=======
 
 def get_comments_by_project(
     session: Session, project_id: uuid.UUID, skip: int = 0, limit: int = 20
@@ -106,7 +72,6 @@ def get_comments_by_project(
         .offset(skip)
         .limit(limit)
     ).all()
->>>>>>> Stashed changes
 
 
 def get_comments_by_recruitment(

@@ -3,17 +3,13 @@ from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
 from models.recruitments import Recruitment, Application, RecruitmentRecruiterLink
 from models.user import User
-<<<<<<< Updated upstream
+from models.comments import Comment
 from schemas.recruitments import (
     RecruitmentCreate,
     RecruitmentUpdate,
     ApplicationCreate,
     ApplicationUpdate,
 )
-=======
-from models.comments import Comment
-from schemas.recruitments import RecruitmentCreate, RecruitmentUpdate, ApplicationCreate, ApplicationUpdate
->>>>>>> Stashed changes
 from datetime import datetime
 import uuid
 from typing import Sequence
@@ -66,13 +62,6 @@ def create_recruitment(
 
     return db_recruitment
 
-<<<<<<< Updated upstream
-
-def get_recruitment_by_id(
-    session: Session, recruitment_id: uuid.UUID
-) -> Recruitment | None:
-    recruitment = session.get(Recruitment, recruitment_id)
-=======
 def get_recruitment_by_id(session: Session, recruitment_id: uuid.UUID) -> Recruitment | None:
     statement = (
         select(Recruitment)
@@ -82,7 +71,6 @@ def get_recruitment_by_id(session: Session, recruitment_id: uuid.UUID) -> Recrui
         )
     )
     recruitment = session.exec(statement).first()
->>>>>>> Stashed changes
     if recruitment and recruitment.creator is None:
         recruitment.creator = session.get(User, recruitment.creator_id)
     if recruitment:
@@ -92,26 +80,19 @@ def get_recruitment_by_id(session: Session, recruitment_id: uuid.UUID) -> Recrui
             ).one()
     return recruitment
 
-<<<<<<< Updated upstream
 
 def get_all_recruitments(
     session: Session, skip: int = 0, limit: int = 10
 ) -> Sequence[Recruitment]:
-=======
-def get_all_recruitments(session: Session, skip: int = 0, limit: int = 10) -> Sequence[Recruitment]:
->>>>>>> Stashed changes
     statement = (
         select(Recruitment)
         .order_by(Recruitment.created_at.desc())
         .offset(skip)
         .limit(limit)
-<<<<<<< Updated upstream
-=======
         .options(
             selectinload(Recruitment.creator),
             selectinload(Recruitment.comments).selectinload(Comment.author)
         )
->>>>>>> Stashed changes
     )
     recruitments = session.exec(statement).all()
     for recruitment in recruitments:
