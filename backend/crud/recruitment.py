@@ -62,13 +62,14 @@ def create_recruitment(
 
     return db_recruitment
 
-def get_recruitment_by_id(session: Session, recruitment_id: uuid.UUID) -> Recruitment | None:
+
+def get_recruitment_by_id(
+    session: Session, recruitment_id: uuid.UUID
+) -> Recruitment | None:
     statement = (
         select(Recruitment)
         .where(Recruitment.id == recruitment_id)
-        .options(
-            selectinload(Recruitment.comments).selectinload(Comment.author)
-        )
+        .options(selectinload(Recruitment.comments).selectinload(Comment.author))
     )
     recruitment = session.exec(statement).first()
     if recruitment and recruitment.creator is None:
@@ -76,7 +77,9 @@ def get_recruitment_by_id(session: Session, recruitment_id: uuid.UUID) -> Recrui
     if recruitment:
         for comment in recruitment.comments:
             comment.reply_count = session.exec(
-                select(func.count()).select_from(Comment).where(Comment.parent_id == comment.id)
+                select(func.count())
+                .select_from(Comment)
+                .where(Comment.parent_id == comment.id)
             ).one()
     return recruitment
 
@@ -91,14 +94,16 @@ def get_all_recruitments(
         .limit(limit)
         .options(
             selectinload(Recruitment.creator),
-            selectinload(Recruitment.comments).selectinload(Comment.author)
+            selectinload(Recruitment.comments).selectinload(Comment.author),
         )
     )
     recruitments = session.exec(statement).all()
     for recruitment in recruitments:
         for comment in recruitment.comments:
             comment.reply_count = session.exec(
-                select(func.count()).select_from(Comment).where(Comment.parent_id == comment.id)
+                select(func.count())
+                .select_from(Comment)
+                .where(Comment.parent_id == comment.id)
             ).one()
     return recruitments
 
