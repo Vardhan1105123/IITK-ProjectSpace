@@ -55,6 +55,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const getFullUrl = (url?: string) => url ? (url.startsWith("http") ? url : `${API_BASE_URL}${url}`) : undefined;
 
 function mapToProject(p: ProjectPublic): Project {
+  const extractedName = p.creator_name || p.creator?.fullname || "Unknown";
+  const extractedAvatar = p.creator_avatar_url || p.creator?.profile_picture_url;
+
   return {
     id: p.id,
     title: p.title,
@@ -72,8 +75,8 @@ function mapToProject(p: ProjectPublic): Project {
       designation: m.designation,
       profile_picture_url: getFullUrl(m.profile_picture_url ?? undefined),
     })),
-    creator_name: p.creator_name,
-    creator_avatar_url: getFullUrl(p.creator_avatar_url ?? undefined),
+    creator_name: extractedName,
+    creator_avatar_url: getFullUrl(extractedAvatar ?? undefined),
   };
 }
 
