@@ -5,7 +5,7 @@ import "./recruitmentPage.css";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getRecruitment, applyToRecruitment, updateRecruitment, RecruitmentPublic } from "@/lib/recruitmentApi";
+import { getRecruitment, applyToRecruitment, updateRecruitment, RecruitmentPublic, UserSummary } from "@/lib/recruitmentApi";
 import { fetchMyProfile } from "@/lib/profileApi";
 import { getRepresentativeString } from "@/lib/formatTeam";
 import { getRouteRegex } from "next/dist/shared/lib/router/utils/route-regex";
@@ -15,13 +15,6 @@ import CommentsSection from "../components/commentsSection";
 export const dynamic = 'force-dynamic';
 
 /* Types */
-export interface Recruiter {
-  id: string;
-  name: string;
-  designation: string;
-  avatar_url?: string;
-}
-
 export interface Recruitment {
   id: string;
   title: string;
@@ -34,9 +27,11 @@ export interface Recruitment {
   status: "Open" | "Closed";
   created_at: string;
   updated_at: string;
-  recruiters: Recruiter[];
+  recruiters: UserSummary[];
   application_count?: number;
   applications: any[];
+  creator_name?: string;
+  creator_avatar_url?: string;
 }
 
 /* Helpers */
@@ -81,12 +76,14 @@ function mapToRecruitment(r: RecruitmentPublic): Recruitment {
     updated_at: r.updated_at,
     recruiters: r.recruiters.map((rec) => ({
       id: rec.id,
-      name: rec.fullname,
+      fullname: rec.fullname,
       designation: rec.designation,
-      avatar_url: getFullUrl(rec.profile_picture_url ?? undefined),
+      profile_picture_url: getFullUrl(rec.profile_picture_url ?? undefined),
     })),
     application_count: r.applications.length,
     applications: r.applications || [],
+    creator_name: r.creator_name,
+    creator_avatar_url: getFullUrl(r.creator_avatar_url ?? undefined),
   };
 }
 
@@ -210,7 +207,11 @@ const RecruitmentPage: React.FC = () => {
     }
   };
 
-  const { displayText } = getRepresentativeString(recruitment?.recruiters as any || []);
+  const { displayText } = getRepresentativeString(
+    recruitment?.recruiters || [],
+    recruitment?.creator_name,
+    recruitment?.creator_avatar_url
+  );
 
   const isRecruiter = recruitment?.recruiters?.some((r) => r.id === currentUserId) ?? false;
   const isOpen     = recruitment?.status === "Open";
@@ -256,8 +257,8 @@ const RecruitmentPage: React.FC = () => {
                 <div className="recruit-recruiters-inline">
                   <div className="recruit-avatar-stack">
                     {recruitment.recruiters.slice(0, 4).map((r, i) => (
-                      <div key={r.id} className={`recruit-avatar-stack-item c${(i % 5) + 1}`} title={r.name}>
-                        {r.avatar_url ? <img src={r.avatar_url} alt={r.name} /> : getInitials(r.name)}
+                      <div key={r.id} className={`recruit-avatar-stack-item c${(i % 5) + 1}`} title={r.fullname}>
+                        {r.profile_picture_url ? <img src={r.profile_picture_url} alt={r.fullname} /> : getInitials(r.fullname)}
                       </div>
                     ))}
                   </div>
@@ -377,9 +378,9 @@ const RecruitmentPage: React.FC = () => {
                       {recruitment.recruiters.map((r, i) => (
                         <div key={r.id} className="recruit-recruiter-chip">
                           <div className={`recruit-recruiter-avatar c${(i % 5) + 1}`}>
-                            {r.avatar_url ? <img src={r.avatar_url} alt={r.name} /> : getInitials(r.name)}
+                            {r.profile_picture_url ? <img src={r.profile_picture_url} alt={r.fullname} /> : getInitials(r.fullname)}
                           </div>
-                          <span>{r.name}</span>
+                          <span>{r.fullname}</span>
                         </div>
                       ))}
                     </div>

@@ -7,6 +7,7 @@ import Sidebar from "../components/Sidebar";
 import { useRouter } from "next/navigation";
 import { getAllProjects, getProjectCount, ProjectSummary } from "@/lib/projectApi";
 import { getAllRecruitments, getRecruitmentCount, RecruitmentSummary } from "@/lib/recruitmentApi";
+import { getRepresentativeString } from "@/lib/formatTeam";
 
 /* Types */
 export interface FeedMember {
@@ -25,7 +26,6 @@ export interface ProjectFeedItem {
   creator_avatar_url?: string;
   institution?: string;
   time_ago: string;
-  other_count: number;
   team_members: FeedMember[];
 }
 
@@ -40,7 +40,6 @@ export interface RecruitmentFeedItem {
   creator_avatar_url?: string;
   institution?: string;
   time_ago: string;
-  other_count: number;
   team_members: FeedMember[];
 }
 
@@ -72,33 +71,41 @@ function timeAgo(isoDate: string): string {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const getFullUrl = (url?: string) => url ? (url.startsWith("http") ? url : `${API_BASE_URL}${url}`) : undefined;
 
+function getFirstImageUrl(urls?: string[]): string[] {
+  if (!urls) return [];
+  const img = urls.find(url => /\.(jpg|jpeg|png|gif|webp)$/i.test(url));
+  return img ? [getFullUrl(img) as string] : [];
+}
+
 function mapProjectToFeedItem(p: ProjectSummary): ProjectFeedItem {
+  const { displayText, representative } = getRepresentativeString(p.team_members, p.creator_name, p.creator_avatar_url);
   return {
     id: p.id,
     title: p.title,
     description: p.summary,
-    media_urls: p.media_urls ? p.media_urls.map(url => getFullUrl(url) as string) : [],
-    creator_name: p.creator_name,
-    creator_avatar_url: getFullUrl(p.creator_avatar_url ?? undefined),
+    media_urls: getFirstImageUrl(p.media_urls),
+    creator_name: displayText,
+    creator_role: representative?.designation,
+    creator_avatar_url: getFullUrl(representative?.profile_picture_url ?? undefined),
     institution: "IIT Kanpur",
     time_ago: timeAgo(p.created_at),
-    other_count: 0,
     team_members: p.team_members?.map(m => ({ id: m.id, name: m.fullname, avatar_url: getFullUrl(m.profile_picture_url) })) || [],
   };
 }
 
 function mapRecruitmentToFeedItem(r: RecruitmentSummary): RecruitmentFeedItem {
+  const { displayText, representative } = getRepresentativeString(r.recruiters, r.creator_name, r.creator_avatar_url);
   return {
     id: r.id,
     title: r.title,
     description: r.domains.join(", ") || "Open recruitment",
-    media_urls: r.media_urls ? r.media_urls.map(url => getFullUrl(url) as string) : [],
+    media_urls: getFirstImageUrl(r.media_urls),
     status: r.status,
-    creator_name: r.creator_name,
-    creator_avatar_url: getFullUrl(r.creator_avatar_url ?? undefined),
+    creator_name: displayText,
+    creator_role: representative?.designation,
+    creator_avatar_url: getFullUrl(representative?.profile_picture_url ?? undefined),
     institution: "IIT Kanpur",
     time_ago: timeAgo(r.created_at),
-    other_count: 0,
     team_members: r.recruiters?.map(m => ({ id: m.id, name: m.fullname, avatar_url: getFullUrl(m.profile_picture_url) })) || [],
   };
 }
@@ -354,9 +361,9 @@ const ActionBar: React.FC<{
 
 /* Post Header */
 const PostHeader: React.FC<{
-  name: string; otherCount: number; role?: string;
+  name: string; role?: string;
   institution?: string; timeAgo: string; avatarUrl?: string;
-}> = ({ name, otherCount, role, institution, timeAgo, avatarUrl }) => (
+}> = ({ name, role, institution, timeAgo, avatarUrl }) => (
   <div className="feed-post-header">
     <div className="feed-creator-avatar">
       {avatarUrl ? <img src={avatarUrl} alt={name} /> : getInitials(name)}
@@ -364,7 +371,6 @@ const PostHeader: React.FC<{
     <div className="feed-creator-meta">
       <div className="feed-creator-name-row">
         <strong>{name}</strong>
-        {otherCount > 0 && `, with ${otherCount} others`}
       </div>
       <div className="feed-creator-detail">
         {[role, institution, timeAgo].filter(Boolean).join(" · ")}
@@ -385,7 +391,7 @@ const ProjectCard: React.FC<{
     <div className="feed-group" onClick={onClick} style={{ cursor: "pointer" }}>
       <TeamPanel members={item.team_members} />
       <div className="feed-post">
-        <PostHeader name={item.creator_name} otherCount={item.other_count} role={item.creator_role} institution={item.institution} timeAgo={item.time_ago} avatarUrl={item.creator_avatar_url} />
+        <PostHeader name={item.creator_name} role={item.creator_role} institution={item.institution} timeAgo={item.time_ago} avatarUrl={item.creator_avatar_url} />
         <div className="feed-post-title">{item.title}</div>
         {hasImage ? (
           <div className="feed-image-wrap">
@@ -416,7 +422,7 @@ const RecruitmentCard: React.FC<{
     <div className="feed-group" onClick={onClick} style={{ cursor: "pointer" }}>
       <TeamPanel members={item.team_members} />
       <div className="feed-post">
-        <PostHeader name={item.creator_name} otherCount={item.other_count} role={item.creator_role} institution={item.institution} timeAgo={item.time_ago} avatarUrl={item.creator_avatar_url} />
+        <PostHeader name={item.creator_name} role={item.creator_role} institution={item.institution} timeAgo={item.time_ago} avatarUrl={item.creator_avatar_url} />
         <span className={`feed-status ${isOpen ? "open" : "closed"}`}>
           <span className="feed-status-dot" />{item.status}
         </span>

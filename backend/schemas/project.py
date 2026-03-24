@@ -103,6 +103,7 @@ class ProjectSummary(BaseModel):
     domains: List[str] = []
     created_at: datetime
     team_members: List[UserSummary] = []
+    media_urls: List[str] = []
     creator_id: uuid.UUID
 
     @computed_field

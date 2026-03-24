@@ -5,7 +5,7 @@ import "./projectPage.css";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getProject, ProjectPublic } from "@/lib/projectApi";
+import { getProject, ProjectPublic, UserSummary } from "@/lib/projectApi";
 import { fetchMyProfile } from "@/lib/profileApi";
 import { getRepresentativeString } from "@/lib/formatTeam";
 import ReactMarkdown from "react-markdown";
@@ -14,13 +14,6 @@ import CommentsSection from "../components/commentsSection";
 export const dynamic = 'force-dynamic';
 
 /* Types */
-export interface TeamMember {
-  id: string;
-  name: string;
-  designation: string;
-  avatar_url?: string;
-}
-
 export interface Project {
   id: string;
   title: string;
@@ -32,7 +25,9 @@ export interface Project {
   media_urls: string[];
   created_at: string;
   updated_at: string;
-  team_members?: TeamMember[];
+  team_members?: UserSummary[];
+  creator_name?: string;
+  creator_avatar_url?: string;
 }
 
 /* Helpers */
@@ -73,10 +68,12 @@ function mapToProject(p: ProjectPublic): Project {
     updated_at: p.updated_at,
     team_members: p.team_members.map((m) => ({
       id: m.id,
-      name: m.fullname,
+      fullname: m.fullname,
       designation: m.designation,
-      avatar_url: getFullUrl(m.profile_picture_url ?? undefined),
+      profile_picture_url: getFullUrl(m.profile_picture_url ?? undefined),
     })),
+    creator_name: p.creator_name,
+    creator_avatar_url: getFullUrl(p.creator_avatar_url ?? undefined),
   };
 }
 
@@ -88,15 +85,15 @@ const CreatorAvatar: React.FC<{ name: string; avatarUrl?: string }> = ({ name, a
 );
 
 /* Team Member Chip */
-const TeamChip: React.FC<{ member: TeamMember; colorIndex: number }> = ({ member, colorIndex }) => (
+const TeamChip: React.FC<{ member: UserSummary; colorIndex: number }> = ({ member, colorIndex }) => (
   <div className="project-team-chip">
     <div className={`project-team-avatar c${(colorIndex % 5) + 1}`}>
-      {member.avatar_url
-        ? <img src={member.avatar_url} alt={member.name} />
-        : getInitials(member.name)
+      {member.profile_picture_url
+        ? <img src={member.profile_picture_url} alt={member.fullname} />
+        : getInitials(member.fullname)
       }
     </div>
-    <span>{member.name}</span>
+    <span>{member.fullname}</span>
   </div>
 );
 
@@ -180,7 +177,11 @@ const ProjectPage: React.FC = () => {
   }, [projectId]);
 
   const isTeamMember = project?.team_members?.some((m) => m.id === currentUserId) ?? false;
-  const { displayText, representative} = getRepresentativeString(project?.team_members as any || []);
+  const { displayText, representative } = getRepresentativeString(
+    project?.team_members || [],
+    project?.creator_name,
+    project?.creator_avatar_url
+  );
   const hasTeam = project?.team_members && project.team_members.length > 0;
   const wasUpdated = project ? project.updated_at !== project.created_at : false;
 
