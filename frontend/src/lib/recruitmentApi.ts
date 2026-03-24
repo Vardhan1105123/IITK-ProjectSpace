@@ -19,6 +19,7 @@ export interface UserSummary {
   id: string;
   fullname: string;
   designation: string;
+  department: string;
   profile_picture_url?: string;
 }
 

@@ -2,21 +2,31 @@
 
 import "./editRecruitmentPage.css";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
-import { getRecruitment, updateRecruitment, deleteRecruitment, addRecruiter, removeRecruiter } from "@/lib/recruitmentApi";
+import {
+  getRecruitment,
+  updateRecruitment,
+  deleteRecruitment,
+  addRecruiter,
+  removeRecruiter,
+  uploadRecruitmentMedia,
+} from "@/lib/recruitmentApi";
 import { searchUsers } from "@/lib/profileApi";
 import { UserSummary } from "@/lib/projectApi";
 import ConfirmPopUp from "../../components/confirmPopUp";
 
-export const dynamic = 'force-dynamic';
-
 interface Tag {
   id: string;
   label: string;
+}
+
+interface LinkEntry {
+  id: string;
+  value: string;
 }
 
 export default function EditRecruitmentPage() {
@@ -41,6 +51,9 @@ export default function EditRecruitmentPage() {
   const [prerequisites, setPrerequisites]           = useState<Tag[]>([]);
   const [allowedDesignations, setAllowedDesignations] = useState<Tag[]>([]);
   const [allowedDepartments, setAllowedDepartments]   = useState<Tag[]>([]);
+  const [links, setLinks]                           = useState<LinkEntry[]>([{ id: "1", value: "" }]);
+  const [uploadedFiles, setUploadedFiles]           = useState<File[]>([]);
+  const [existingMediaUrls, setExistingMediaUrls]   = useState<string[]>([]);
 
   // Recruiter states
   const [selectedUsers, setSelectedUsers]         = useState<UserSummary[]>([]);
@@ -48,6 +61,8 @@ export default function EditRecruitmentPage() {
   const [userSearchQuery, setUserSearchQuery]     = useState("");
   const [userSearchResults, setUserSearchResults] = useState<UserSummary[]>([]);
   const [isSearchingUsers, setIsSearchingUsers]   = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Pre-populate fields
   useEffect(() => {
@@ -66,6 +81,12 @@ export default function EditRecruitmentPage() {
         setPrerequisites(raw.prerequisites.map((p, i) => ({ id: String(i), label: p })));
         setAllowedDesignations(raw.allowed_designations.map((d, i) => ({ id: String(i), label: d })));
         setAllowedDepartments(raw.allowed_departments.map((d, i) => ({ id: String(i), label: d })));
+        setLinks(
+          raw.links.length > 0
+            ? raw.links.map((l, i) => ({ id: String(i), value: l }))
+            : [{ id: "1", value: "" }]
+        );
+        setExistingMediaUrls(raw.media_urls ?? []);
 
         // Pre-populate recruiters as chips
         const recruiters: UserSummary[] = raw.recruiters.map((r) => ({
@@ -136,6 +157,27 @@ export default function EditRecruitmentPage() {
   const addDepartment      = makeAdder(setAllowedDepartments,     "Enter allowed department:");
   const removeDepartment   = makeRemover(setAllowedDepartments);
 
+  // Link helpers
+  const addLink = () => setLinks((prev) => [...prev, { id: Date.now().toString(), value: "" }]);
+  const updateLink = (id: string, value: string) =>
+    setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, value } : l)));
+  const removeLink = (id: string) => setLinks((prev) => prev.filter((l) => l.id !== id));
+
+  // File helpers
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setUploadedFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files)]);
+  };
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.currentTarget.files;
+    if (!files) return;
+    setUploadedFiles((prev) => [...prev, ...Array.from(files)]);
+  };
+  const removeNewFile = (index: number) =>
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+  const removeExistingUrl = (url: string) =>
+    setExistingMediaUrls((prev) => prev.filter((u) => u !== url));
+
   const handleDelete = async () => {
     try {
       await deleteRecruitment(recruitmentId);
@@ -164,8 +206,15 @@ export default function EditRecruitmentPage() {
         prerequisites:        prerequisites.map((t) => t.label),
         allowed_designations: allowedDesignations.map((t) => t.label),
         allowed_departments:  allowedDepartments.map((t) => t.label),
+        links:                links.map((l) => l.value).filter(Boolean),
+        media_urls:           existingMediaUrls,
         status,
       });
+
+      // Upload any newly attached files
+      if (uploadedFiles.length > 0) {
+        await uploadRecruitmentMedia(recruitmentId, uploadedFiles);
+      }
 
       // 2. Diff recruiters and apply adds/removes
       const currentIds = selectedUsers.map((u) => u.id);
@@ -208,7 +257,7 @@ export default function EditRecruitmentPage() {
   );
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense>
     <div className="app-shell">
       <Header showEditProfile={false} />
 
@@ -220,7 +269,7 @@ export default function EditRecruitmentPage() {
           {/* Loading */}
           {loading && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              {[1, 2].map((i) => (
+              {[1, 2, 3].map((i) => (
                 <div key={i} className="pcf-card" style={{ height: 200, background: "var(--border-color)", animation: "pulse 1.5s ease-in-out infinite" }} />
               ))}
             </div>
@@ -259,7 +308,7 @@ export default function EditRecruitmentPage() {
                 <section className="pcf-card">
                   <div className="pcf-card-header">
                     <div>
-                      <p className="pcf-section-label">Section 1 of 2</p>
+                      <p className="pcf-section-label">Section 1 of 3</p>
                       <h2 className="pcf-section-title">Recruitment Details</h2>
                     </div>
 
@@ -330,11 +379,106 @@ export default function EditRecruitmentPage() {
                   </div>
                 </section>
 
-                {/* Section 2 — Specifications & Team */}
+                {/* Section 2 — Media & Links */}
                 <section className="pcf-card">
                   <div className="pcf-card-header">
                     <div>
-                      <p className="pcf-section-label">Section 2 of 2</p>
+                      <p className="pcf-section-label">Section 2 of 3</p>
+                      <h2 className="pcf-section-title">Recruitment Media and Links</h2>
+                    </div>
+                  </div>
+
+                  <div className="pcf-field">
+                    <label className="pcf-label">
+                      Current Media
+                      <span className="pcf-label-hint">(Remove any media you no longer want.)</span>
+                    </label>
+                    {existingMediaUrls.length > 0 ? (
+                      <div className="pcf-file-list">
+                        {existingMediaUrls.map((url) => (
+                          <div key={url} className="pcf-file-item">
+                            <span className="pcf-file-name">{url}</span>
+                            <button className="pcf-file-remove" onClick={() => removeExistingUrl(url)}>x</button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8 }}>No existing media.</p>
+                    )}
+                  </div>
+
+                  <div className="pcf-field">
+                    <label className="pcf-label">
+                      Upload New Media
+                      <span className="pcf-label-hint">(Add new images, videos or PDFs.)</span>
+                    </label>
+                    <div
+                      className="pcf-upload-zone"
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={handleFileDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      <span className="pcf-upload-title">Upload Files from your Computer</span>
+                      <span className="pcf-upload-hint">Upload images, videos or PDFs</span>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*,video/*,.pdf"
+                        style={{ display: "none" }}
+                        onChange={handleFileInput}
+                      />
+                    </div>
+                    {uploadedFiles.length > 0 && (
+                      <div className="pcf-file-list">
+                        {uploadedFiles.map((f, i) => (
+                          <div key={i} className="pcf-file-item">
+                            <span className="pcf-file-name">{f.name}</span>
+                            <button className="pcf-file-remove" onClick={() => removeNewFile(i)}>x</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pcf-field">
+                    <label className="pcf-label">
+                      Relevant Links
+                      <span className="pcf-label-hint">(Add links to material, publications or recruitment tasks.)</span>
+                    </label>
+                    {links.map((link) => (
+                      <div key={link.id} className="pcf-link-row">
+                        <div className="pcf-link-input-wrapper">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="pcf-link-icon">
+                            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                          </svg>
+                          <input
+                            className="pcf-input pcf-input--link"
+                            placeholder="https://"
+                            value={link.value}
+                            onChange={(e) => updateLink(link.id, e.target.value)}
+                          />
+                        </div>
+                        {links.length > 1 && (
+                          <button className="pcf-link-remove" onClick={() => removeLink(link.id)}>x</button>
+                        )}
+                      </div>
+                    ))}
+                    <button className="pcf-add-btn" onClick={addLink}><span className="pcf-add-icon">+</span> Add Link</button>
+                  </div>
+                </section>
+
+                {/* Section 3 — Specifications & Team */}
+                <section className="pcf-card">
+                  <div className="pcf-card-header">
+                    <div>
+                      <p className="pcf-section-label">Section 3 of 3</p>
                       <h2 className="pcf-section-title">Recruitment Specifications and Team</h2>
                     </div>
                   </div>

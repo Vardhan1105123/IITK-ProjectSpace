@@ -2,13 +2,20 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import "./recruitmentPage.css";
+import Link from "next/link";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getRecruitment, applyToRecruitment, updateRecruitment, RecruitmentPublic, UserSummary } from "@/lib/recruitmentApi";
+import {
+  getRecruitment,
+  applyToRecruitment,
+  updateRecruitment,
+  updateApplicationStatus,
+  RecruitmentPublic,
+  UserSummary
+} from "@/lib/recruitmentApi";
 import { fetchMyProfile } from "@/lib/profileApi";
 import { getRepresentativeString } from "@/lib/formatTeam";
-import { getRouteRegex } from "next/dist/shared/lib/router/utils/route-regex";
 import ReactMarkdown from "react-markdown";
 import CommentsSection from "../components/commentsSection";
 
@@ -29,9 +36,9 @@ export interface Recruitment {
   updated_at: string;
   recruiters: UserSummary[];
   application_count?: number;
-  applications: any[];
   creator_name?: string;
   creator_avatar_url?: string;
+  applications: RecruitmentPublic["applications"];
 }
 
 /* Helpers */
@@ -78,6 +85,7 @@ function mapToRecruitment(r: RecruitmentPublic): Recruitment {
       id: rec.id,
       fullname: rec.fullname,
       designation: rec.designation,
+      department: rec.department,
       profile_picture_url: getFullUrl(rec.profile_picture_url ?? undefined),
     })),
     application_count: r.applications.length,
@@ -146,9 +154,9 @@ const RecruitmentPage: React.FC = () => {
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState<string | null>(null);
   const [applying, setApplying]         = useState(false);
-  const [applySuccess, setApplySuccess] = useState(false);
   const [applyError, setApplyError]     = useState<string | null>(null);
   const [togglingStatus, setTogglingStatus] = useState(false);
+  const [applicationUpdating, setApplicationUpdating] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!recruitmentId) return;
@@ -184,8 +192,17 @@ const RecruitmentPage: React.FC = () => {
     setApplying(true);
     setApplyError(null);
     try {
-      await applyToRecruitment(recruitment.id, { recruitment_id: recruitment.id });
-      setApplySuccess(true);
+      const createdApplication = await applyToRecruitment(recruitment.id, {
+        recruitment_id: recruitment.id,
+      });
+      setRecruitment((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          applications: [...prev.applications, createdApplication],
+          application_count: (prev.application_count ?? prev.applications.length) + 1,
+        };
+      });
     } catch (err: any) {
       setApplyError(err.message || "Failed to apply. Please try again.");
     } finally {
@@ -212,20 +229,52 @@ const RecruitmentPage: React.FC = () => {
     recruitment?.creator_name,
     recruitment?.creator_avatar_url
   );
+  const handleApplicationStatusUpdate = async (
+    applicationId: string,
+    nextStatus: "Accepted" | "Rejected"
+  ) => {
+    if (!recruitment) return;
+    setApplicationUpdating((prev) => ({ ...prev, [applicationId]: true }));
+    try {
+      const updated = await updateApplicationStatus(recruitment.id, applicationId, {
+        status: nextStatus,
+      });
+      setRecruitment((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          applications: prev.applications.map((app) =>
+            app.id === applicationId ? { ...app, status: updated.status } : app
+          ),
+        };
+      });
+    } catch (err: any) {
+      alert(err.message || "Failed to update application status.");
+    } finally {
+      setApplicationUpdating((prev) => ({ ...prev, [applicationId]: false }));
+    }
+  };
 
   const isRecruiter = recruitment?.recruiters?.some((r) => r.id === currentUserId) ?? false;
   const isOpen     = recruitment?.status === "Open";
   const wasUpdated = recruitment ? recruitment.updated_at !== recruitment.created_at : false;
-  const hasApplied = recruitment?.applications?.some((app: any) => app.applicant?.id === currentUserId) ?? false;
+  const myApplication =
+    recruitment?.applications?.find((app) => app.applicant.id === currentUserId) ?? null;
+  const myApplicationStatus = myApplication?.status as
+    | "Pending"
+    | "Accepted"
+    | "Rejected"
+    | undefined;
+  const hasApplied = !!myApplicationStatus;
 
   let applyText = "Apply";
   if (applying) applyText = "Applying...";
-  else if (hasApplied || applySuccess) applyText = "Applied";
+  else if (myApplicationStatus) applyText = myApplicationStatus;
   else if (isRecruiter) applyText = "Cannot Apply";
   else if (!isOpen) applyText = "Closed";
 
   return (
-    <Suspense fallback={<RecruitmentSkeleton />}>
+    <Suspense>
     <div className="app-shell">
       <Header
         showEditProfile={false}
@@ -286,7 +335,7 @@ const RecruitmentPage: React.FC = () => {
                   <button
                     className="recruit-apply-btn"
                     onClick={handleApply}
-                    disabled={!isOpen || applying || applySuccess || hasApplied || isRecruiter}
+                    disabled={isRecruiter || applying || hasApplied || (!isOpen && !hasApplied)}
                   >
                     {applyText}
                   </button>
@@ -294,9 +343,21 @@ const RecruitmentPage: React.FC = () => {
               </div>
 
               {/* Apply feedback */}
-              {applySuccess && (
-                <p style={{ color: "#1a9e72", fontSize: 13, marginBottom: 8 }}>
-                  Your application has been submitted successfully!
+              {myApplicationStatus && (
+                <p
+                  style={{
+                    color:
+                      myApplicationStatus === "Accepted"
+                        ? "#1a9e72"
+                        : myApplicationStatus === "Rejected"
+                        ? "#a53d2a"
+                        : "#a57d2a",
+                    fontSize: 13,
+                    marginBottom: 8,
+                    fontWeight: 600,
+                  }}
+                >
+                  Your application status: {myApplicationStatus}
                 </p>
               )}
               {applyError && (
@@ -416,22 +477,67 @@ const RecruitmentPage: React.FC = () => {
                   <div className="recruit-applications-section" style={{ marginTop: "20px" }}>
                     <div className="recruit-section-heading">Applications</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "12px" }}>
-                      {recruitment.applications.map((app: any) => {
-                        const applicantName = app.user?.fullname || app.user?.name || app.user?.profile?.fullname || app.applicant?.fullname || app.applicant?.name || app.applicant?.profile?.fullname || app.applicant_name || app.applicant_id || app.user_id || "Unknown Applicant";
-                        const applicantDesig = app.user?.designation || app.user?.profile?.designation || app.applicant?.designation || app.applicant?.profile?.designation || app.applicant_designation || app.designation || "Unknown Designation";
-                        const applicantDept = app.user?.department || app.user?.dept || app.user?.profile?.department || app.applicant?.department || app.applicant?.dept || app.applicant?.profile?.department || app.applicant_department || app.department || app.dept || "Unknown Department";
-                        const appliedDate = app.applied_at || app.created_at;
+                      {recruitment.applications.map((app) => {
+                        const applicantName = app.applicant.fullname || "Unknown Applicant";
+                        const applicantDesig = app.applicant.designation || "Unknown Designation";
+                        const applicantDept = app.applicant.department || "Unknown Department";
+                        const appliedDate = app.applied_at;
+                        const applicantId = app.applicant.id;
+                        const isUpdating = applicationUpdating[app.id] === true;
+                        const isFinalized = app.status !== "Pending";
                         
                         return (
                           <div key={app.id} style={{ border: "1px solid var(--border-color)", padding: "16px", borderRadius: "8px" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
                               <div style={{ display: "flex", flexDirection: "column" }}>
-                                <strong style={{ fontSize: "16px" }}>{applicantName}</strong>
+                                {applicantId ? (
+                                  <Link
+                                    href={`/profilePage?id=${applicantId}`}
+                                    style={{
+                                      fontSize: "16px",
+                                      fontWeight: 700,
+                                      color: "var(--text-primary)",
+                                      textDecoration: "none",
+                                    }}
+                                  >
+                                    {applicantName}
+                                  </Link>
+                                ) : (
+                                  <strong style={{ fontSize: "16px" }}>{applicantName}</strong>
+                                )}
                                 <span style={{ fontSize: "14px", color: "var(--text-muted)" }}>{applicantDesig} - {applicantDept}</span>
                               </div>
                               <span style={{ fontWeight: "bold", color: app.status === "Pending" ? "orange" : app.status === "Accepted" ? "green" : "red" }}>{app.status}</span>
                             </div>
                             <p style={{ margin: 0, fontSize: "14px", color: "var(--text-muted)" }}>Applied At: {formatDate(appliedDate)}</p>
+                            {!isFinalized && (
+                              <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                                <button
+                                  className="recruit-apply-btn"
+                                  style={{
+                                    padding: "6px 12px",
+                                    fontSize: "12px",
+                                    background: "#1a9e72",
+                                  }}
+                                  disabled={isUpdating}
+                                  onClick={() => handleApplicationStatusUpdate(app.id, "Accepted")}
+                                >
+                                  {isUpdating ? "Updating..." : "Approve"}
+                                </button>
+                                <button
+                                  className="recruit-apply-btn"
+                                  style={{
+                                    padding: "6px 12px",
+                                    fontSize: "12px",
+                                    background: "#a53d2a",
+                                  }}
+                                  disabled={isUpdating}
+                                  onClick={() => handleApplicationStatusUpdate(app.id, "Rejected")}
+                                >
+                                  {isUpdating ? "Updating..." : "Reject"}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}

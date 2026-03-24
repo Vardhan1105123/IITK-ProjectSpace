@@ -67,7 +67,9 @@ def get_recruitment_by_id(session: Session, recruitment_id: uuid.UUID) -> Recrui
         select(Recruitment)
         .where(Recruitment.id == recruitment_id)
         .options(
-            selectinload(Recruitment.comments).selectinload(Comment.author)
+            selectinload(Recruitment.comments).selectinload(Comment.author),
+            selectinload(Recruitment.recruiters),
+            selectinload(Recruitment.applications).selectinload(Application.applicant),
         )
     )
     recruitment = session.exec(statement).first()
@@ -177,6 +179,12 @@ def get_application_by_id(
 def update_application_status(
     session: Session, db_application: Application, app_update: ApplicationUpdate
 ) -> Application:
+    if db_application.status != "Pending":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Application status is already finalized and cannot be changed.",
+        )
+
     db_application.status = app_update.status
 
     session.add(db_application)

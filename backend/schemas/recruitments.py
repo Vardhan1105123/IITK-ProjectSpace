@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, field_validator, computed_field
 from typing import Optional, List, Any
 import uuid
 from datetime import datetime
-from core.utils import Designation
+from core.utils import Designation, Department
 from schemas.comments import CommentPublic
 
 
@@ -12,6 +12,7 @@ class UserSummary(BaseModel):
     id: uuid.UUID
     fullname: str
     designation: Designation
+    department: Department
     profile_picture_url: Optional[str] = None
 
     class Config:
@@ -48,6 +49,43 @@ class ApplicationPublic(BaseModel):
     message: Optional[str] = None
     status: str
     applied_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class MyRecruitmentApplicationPublic(BaseModel):
+    # Schema for an applicant to view their own recruitment application statuses
+
+    id: uuid.UUID
+    recruitment_id: uuid.UUID
+    message: Optional[str] = None
+    status: str
+    applied_at: datetime
+
+    @computed_field
+    @property
+    def recruitment_title(self) -> str:
+        recruitment = getattr(self, "recruitment", None)
+        if recruitment is not None:
+            return recruitment.title or ""
+        return ""
+
+    @computed_field
+    @property
+    def recruitment_domains(self) -> List[str]:
+        recruitment = getattr(self, "recruitment", None)
+        if recruitment is not None:
+            return recruitment.domains or []
+        return []
+
+    @computed_field
+    @property
+    def recruitment_status(self) -> str:
+        recruitment = getattr(self, "recruitment", None)
+        if recruitment is not None:
+            return recruitment.status or "Closed"
+        return "Closed"
 
     class Config:
         from_attributes = True
