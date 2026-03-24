@@ -19,7 +19,6 @@ from crud.project import (
     count_projects,
     update_project,
     delete_project,
-    add_user_to_project_team,
 )
 from crud.notification import create_notification
 from core.utils import NotificationType
@@ -49,8 +48,6 @@ def create_new_project(
     project = create_project(
         session=db, project_create=project_in, creator_id=current_user.id
     )
-
-    db.add(ProjectTeamLink(project_id=project.id, user_id=current_user.id))
 
     if member_ids:
         for member_id in member_ids:

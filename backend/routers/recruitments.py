@@ -60,11 +60,6 @@ def create_new_recruitment(
         session=db, recruitment_create=recruitment_in, creator_id=current_user.id
     )
 
-    # 1. Make the creator an official recruiter immediately!
-    db.add(
-        RecruitmentRecruiterLink(recruitment_id=recruitment.id, user_id=current_user.id)
-    )
-
     if recruiter_ids:
         for fellow_id in recruiter_ids:
             if fellow_id != current_user.id:
@@ -84,11 +79,11 @@ def create_new_recruitment(
                     related_entity_id=recruitment.id,
                 )
 
-    # 2. Move commit outside the IF block so it ALWAYS saves
+    # Move commit outside the IF block so it ALWAYS saves
     db.commit()
     db.refresh(recruitment)
 
-    # 3. Satisfy Pydantic schema fallback
+    # Satisfy Pydantic schema fallback
     recruitment.creator = db.get(User, recruitment.creator_id)
 
     return recruitment
