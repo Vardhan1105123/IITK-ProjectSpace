@@ -13,5 +13,5 @@ postgres_data/
 
 backend/uploads/
 
-.pem
-.xml
+projectspace-key.pem
+repomix-output.xml
