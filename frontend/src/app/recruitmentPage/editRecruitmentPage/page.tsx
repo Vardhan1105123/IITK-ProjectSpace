@@ -29,7 +29,10 @@ interface LinkEntry {
   value: string;
 }
 
-export default function EditRecruitmentPage() {
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error && error.message ? error.message : fallback;
+
+function EditRecruitmentPageContent() {
   const searchParams        = useSearchParams();
   const router        = useRouter();
   const recruitmentId = searchParams.get("id") as string;
@@ -97,8 +100,8 @@ export default function EditRecruitmentPage() {
         }));
         setSelectedUsers(recruiters);
         setOriginalUserIds(recruiters.map((r) => r.id));
-      } catch (err: any) {
-        if (err.message === "Unauthorized") { router.replace("/auth"); return; }
+      } catch (error: unknown) {
+        if (getErrorMessage(error, "") === "Unauthorized") { router.replace("/auth"); return; }
         setError("Failed to load recruitment. Please try again.");
       } finally {
         setLoading(false);
@@ -182,9 +185,9 @@ export default function EditRecruitmentPage() {
     try {
       await deleteRecruitment(recruitmentId);
       router.replace("/homepage");
-    } catch (err: any) {
-      if (err.message === "Unauthorized") { router.replace("/auth"); return; }
-      setSubmitError(err.message || "Failed to delete recruitment.");
+    } catch (error: unknown) {
+      if (getErrorMessage(error, "") === "Unauthorized") { router.replace("/auth"); return; }
+      setSubmitError(getErrorMessage(error, "Failed to delete recruitment."));
     } finally {
       setShowConfirm(false);
     }
@@ -227,9 +230,9 @@ export default function EditRecruitmentPage() {
       ]);
 
       router.push(`/recruitmentPage?id=${recruitmentId}`);
-    } catch (err: any) {
-      if (err.message === "Unauthorized") { router.replace("/auth"); return; }
-      setSubmitError(err.message || "Failed to save changes. Please try again.");
+    } catch (error: unknown) {
+      if (getErrorMessage(error, "") === "Unauthorized") { router.replace("/auth"); return; }
+      setSubmitError(getErrorMessage(error, "Failed to save changes. Please try again."));
     } finally {
       setIsSubmitting(false);
     }
@@ -257,7 +260,6 @@ export default function EditRecruitmentPage() {
   );
 
   return (
-    <Suspense>
     <div className="app-shell">
       <Header showEditProfile={false} />
 
@@ -565,6 +567,13 @@ export default function EditRecruitmentPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function EditRecruitmentPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EditRecruitmentPageContent />
     </Suspense>
   );
 }

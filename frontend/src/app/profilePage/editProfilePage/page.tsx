@@ -6,6 +6,7 @@ import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import { fetchMyProfile, updateMyProfile, UserProfile } from "@/lib/profileApi";
 import CreatableSelect from "react-select/creatable";
+import type { MultiValue } from "react-select";
 
 import seedSkills from "@/data/seed_skills.json"
 
@@ -54,6 +55,14 @@ interface EditFormState {
   profile_picture_url: string;
   avatarPreview: string | null;
 }
+
+type SelectOption = {
+  value: string;
+  label: string;
+};
+
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error && error.message ? error.message : fallback;
 
 function profileToForm(p: UserProfile): EditFormState {
   return {
@@ -146,15 +155,15 @@ const EditProfilePage: React.FC = () => {
       }
 
       router.push("/profilePage");
-    } catch (err: any) {
-      setSaveError(err.message || "Failed to save profile. Please try again.");
+    } catch (error: unknown) {
+      setSaveError(getErrorMessage(error, "Failed to save profile. Please try again."));
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSkillsChange = (selectedOptions: any) => {
-    const newSkills = selectedOptions ? selectedOptions.map((opt: any) => opt.value) : [];
+  const handleSkillsChange = (selectedOptions: MultiValue<SelectOption>) => {
+    const newSkills = selectedOptions.map((opt) => opt.value);
     setForm((prev) => prev ? { ...prev, skills: newSkills } : prev);
   };
 
@@ -162,7 +171,9 @@ const EditProfilePage: React.FC = () => {
   if (loading) {
     return (
       <div className="app-shell">
-        <Header showEditProfile={false} />
+        <Suspense fallback={<div />}>
+          <Header showEditProfile={false} />
+        </Suspense>
         <div className="app-body">
           <Sidebar defaultActive="profile" />
           <main className="edit-profile-page">
@@ -177,7 +188,9 @@ const EditProfilePage: React.FC = () => {
   if (error || !profile || !form) {
     return (
       <div className="app-shell">
-        <Header showEditProfile={false} />
+        <Suspense fallback={<div />}>
+          <Header showEditProfile={false} />
+        </Suspense>
         <div className="app-body">
           <Sidebar defaultActive="profile" />
           <main className="edit-profile-page">

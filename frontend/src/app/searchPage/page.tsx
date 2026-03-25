@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import "./SearchPage.css";
@@ -36,6 +36,9 @@ const normalizeTab = (tab: string | null): TabType => {
 
 const sameStringArray = (a: string[], b: string[]) =>
   a.length === b.length && a.every((item, idx) => item === b[idx]);
+
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error && error.message ? error.message : fallback;
 
 const SKILL_OPTIONS = Array.from(
   new Set(
@@ -167,7 +170,7 @@ const UserIcon = () => (
   </svg>
 );
 
-const SearchPage: React.FC = () => {
+const SearchPageContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -336,12 +339,13 @@ const SearchPage: React.FC = () => {
             setTotal(data.total);
           }
         }
-      } catch (err: any) {
-        if (err.message === "Unauthorized") {
+      } catch (error: unknown) {
+        const message = getErrorMessage(error, "Search failed. Please try again.");
+        if (message === "Unauthorized") {
           router.replace("/auth");
           return;
         }
-        if (!cancelled) setError(err.message || "Search failed. Please try again.");
+        if (!cancelled) setError(message);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -807,5 +811,11 @@ const SearchPage: React.FC = () => {
     </div>
   );
 };
+
+const SearchPage: React.FC = () => (
+  <Suspense fallback={<div>Loading...</div>}>
+    <SearchPageContent />
+  </Suspense>
+);
 
 export default SearchPage;

@@ -54,9 +54,12 @@ function formatDate(iso: string): string {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const getFullUrl = (url?: string) => url ? (url.startsWith("http") ? url : `${API_BASE_URL}${url}`) : undefined;
 
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error && error.message ? error.message : fallback;
+
 function mapToProject(p: ProjectPublic): Project {
-  const extractedName = p.creator_name || p.creator?.fullname || "Unknown";
-  const extractedAvatar = p.creator_avatar_url || p.creator?.profile_picture_url;
+  const extractedName = p.creator_name || "Unknown";
+  const extractedAvatar = p.creator_avatar_url;
 
   return {
     id: p.id,
@@ -139,7 +142,7 @@ const ProjectSkeleton = () => (
 );
 
 /* ProjectPage */
-const ProjectPage: React.FC = () => {
+const ProjectPageContent: React.FC = () => {
   const searchParams    = useSearchParams();
   const router    = useRouter();
   const projectId = searchParams.get("id") as string;
@@ -164,9 +167,10 @@ const ProjectPage: React.FC = () => {
         setProject(mapToProject(raw));
         setCurrentUserId(me.id);
         setCreatorId(raw.creator_id);
-      } catch (err: any) {
-        if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
-        if (err.message.includes("not found") || err.message.includes("404")) {
+      } catch (error: unknown) {
+        const message = getErrorMessage(error, "");
+        if (message === "Unauthorized") { router.replace("/auth"); return; }
+        if (message.includes("not found") || message.includes("404")) {
           setError("Project not found.");
         } else {
           setError("Failed to load project. Please try again.");
@@ -189,7 +193,6 @@ const ProjectPage: React.FC = () => {
   const wasUpdated = project ? project.updated_at !== project.created_at : false;
 
   return (
-    <Suspense fallback={<ProjectSkeleton />}>
     <div className="app-shell">
       <Header
         showEditProfile={false}
@@ -322,8 +325,13 @@ const ProjectPage: React.FC = () => {
         </main>
       </div>
     </div>
-    </Suspense>
   );
 };
+
+const ProjectPage: React.FC = () => (
+  <Suspense fallback={<ProjectSkeleton />}>
+    <ProjectPageContent />
+  </Suspense>
+);
 
 export default ProjectPage;

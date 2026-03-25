@@ -58,7 +58,11 @@ export interface SearchRecruitmentResult {
   creator_avatar_url?: string | null;
 }
 
-const extractError = (data: any, fallbackMsg: string): string => {
+type ApiErrorData = {
+  detail?: string | Array<{ msg?: string }>;
+} | null;
+
+const extractError = (data: ApiErrorData, fallbackMsg: string): string => {
   if (!data || !data.detail) return fallbackMsg;
   if (typeof data.detail === "string") return data.detail;
   if (Array.isArray(data.detail) && data.detail[0]?.msg) {

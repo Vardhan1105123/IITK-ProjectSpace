@@ -24,7 +24,10 @@ interface LinkEntry {
   value: string;
 }
 
-export default function EditProjectPage() {
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error && error.message ? error.message : fallback;
+
+function EditProjectPageContent() {
   const searchParams    = useSearchParams();
   const router    = useRouter();
   const projectId = searchParams.get("id") as string;
@@ -43,7 +46,6 @@ export default function EditProjectPage() {
   const [details, setDetails]     = useState("");
   const [tags, setTags]           = useState<Tag[]>([]);
   const [links, setLinks]         = useState<LinkEntry[]>([{ id: "1", value: "" }]);
-  const [teamMembers, setTeamMembers]             = useState("");
   const [uploadedFiles, setUploadedFiles]         = useState<File[]>([]);
   const [existingMediaUrls, setExistingMediaUrls] = useState<string[]>([]);
 
@@ -86,8 +88,8 @@ export default function EditProjectPage() {
         }));
         setSelectedUsers(members);
         setOriginalUserIds(members.map((m) => m.id));
-      } catch (err: any) {
-        if (err.message === "Unauthorized") { router.replace("/auth"); return; }
+      } catch (error: unknown) {
+        if (getErrorMessage(error, "") === "Unauthorized") { router.replace("/auth"); return; }
         setError("Failed to load project. Please try again.");
       } finally {
         setLoading(false);
@@ -162,9 +164,9 @@ export default function EditProjectPage() {
     try {
       await deleteProject(projectId);
       router.replace("/homepage");
-    } catch (err: any) {
-      if (err.message === "Unauthorized") { router.replace("/auth"); return; }
-      setSubmitError(err.message || "Failed to delete project.");
+    } catch (error: unknown) {
+      if (getErrorMessage(error, "") === "Unauthorized") { router.replace("/auth"); return; }
+      setSubmitError(getErrorMessage(error, "Failed to delete project."));
     } finally {
       setShowConfirm(false);
     }
@@ -205,16 +207,15 @@ export default function EditProjectPage() {
       ]);
 
       router.push(`/projectPage?id=${projectId}`);
-    } catch (err: any) {
-      if (err.message === "Unauthorized") { router.replace("/auth"); return; }
-      setSubmitError(err.message || "Failed to save changes. Please try again.");
+    } catch (error: unknown) {
+      if (getErrorMessage(error, "") === "Unauthorized") { router.replace("/auth"); return; }
+      setSubmitError(getErrorMessage(error, "Failed to save changes. Please try again."));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
     <div className="app-shell">
       <Header showEditProfile={false} />
 
@@ -486,6 +487,13 @@ export default function EditProjectPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function EditProjectPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EditProjectPageContent />
     </Suspense>
   );
 }

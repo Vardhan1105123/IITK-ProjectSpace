@@ -1,7 +1,7 @@
 "use client";
 
 import "./postCreationForm.css";
-import { useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown"
 import Header from "../components/Header";
@@ -12,6 +12,7 @@ import { createRecruitment, uploadRecruitmentMedia } from "@/lib/recruitmentApi"
 import { UserSummary } from "@/lib/projectApi";
 import { searchUsers } from "@/lib/profileApi";
 import CreatableSelect from "react-select/creatable";
+import type { MultiValue } from "react-select";
 
 import skillsData from "@/data/seed_skills.json"
 
@@ -26,6 +27,17 @@ interface LinkEntry {
   id: string;
   value: string;
 }
+
+type SelectOption = {
+  value: string;
+  label: string;
+};
+
+const mapOptionsToTags = (selectedOptions: MultiValue<SelectOption>): Tag[] =>
+  selectedOptions.map((option) => ({ id: option.value, label: option.value }));
+
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error && error.message ? error.message : fallback;
 
 export default function PostCreationForm() {
   const router = useRouter();
@@ -142,24 +154,20 @@ export default function PostCreationForm() {
   const makeRemover = (setter: React.Dispatch<React.SetStateAction<Tag[]>>) => (id: string) =>
     setter((prev) => prev.filter((t) => t.id !== id));
 
-  const handleTagsChange = (selectedOptions: any) => {
-    const newTags = selectedOptions ? selectedOptions.map((opt: any) => ({ id: opt.value, label: opt.value })) : [];
-    setTags(newTags);
+  const handleTagsChange = (selectedOptions: MultiValue<SelectOption>) => {
+    setTags(mapOptionsToTags(selectedOptions));
   };
 
-  const handlePrerequisitesChange = (selectedOptions: any) => {
-    const newPrereqs = selectedOptions ? selectedOptions.map((opt: any) => ({ id: opt.value, label: opt.value })) : [];
-    setPrerequisites(newPrereqs);
+  const handlePrerequisitesChange = (selectedOptions: MultiValue<SelectOption>) => {
+    setPrerequisites(mapOptionsToTags(selectedOptions));
   };
 
-  const handleDesignationsChange = (selectedOptions: any) => {
-    const newDesignations = selectedOptions ? selectedOptions.map((opt: any) => ({ id: opt.value, label: opt.value })) : [];
-    setAllowedDesignations(newDesignations);
+  const handleDesignationsChange = (selectedOptions: MultiValue<SelectOption>) => {
+    setAllowedDesignations(mapOptionsToTags(selectedOptions));
   };
 
-  const handleDepartmentsChange = (selectedOptions: any) => {
-    const newDepartments = selectedOptions ? selectedOptions.map((opt: any) => ({ id: opt.value, label: opt.value })) : [];
-    setAllowedDepartments(newDepartments);
+  const handleDepartmentsChange = (selectedOptions: MultiValue<SelectOption>) => {
+    setAllowedDepartments(mapOptionsToTags(selectedOptions));
   };
 
   const addLink = () =>
@@ -236,9 +244,12 @@ export default function PostCreationForm() {
         router.push(`/recruitmentPage?id=${created.id}`);
       }
 
-    } catch (err: any) {
-      if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
-      setSubmitError(err.message || "Failed to publish. Please try again.");
+    } catch (error: unknown) {
+      if (getErrorMessage(error, "") === "Unauthorized") {
+        router.replace("/auth");
+        return;
+      }
+      setSubmitError(getErrorMessage(error, "Failed to publish. Please try again."));
     } finally {
       setIsSubmitting(false);
     }
@@ -271,7 +282,9 @@ export default function PostCreationForm() {
 
   return (
     <div className="app-shell">
-      <Header showEditProfile={false} />
+      <Suspense fallback={<div />}>
+        <Header showEditProfile={false} />
+      </Suspense>
 
       <div className="app-body">
         <Sidebar defaultActive="create" />

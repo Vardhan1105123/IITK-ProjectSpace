@@ -3,7 +3,11 @@ import { authHeaders } from "@/lib/token";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const API = `${BASE_URL}/comments`;
 
-const extractError = (data: any, fallback: string): string => {
+type ApiErrorData = {
+  detail?: string | Array<{ msg?: string }>;
+} | null;
+
+const extractError = (data: ApiErrorData, fallback: string): string => {
   if (!data || !data.detail) return fallback;
   if (typeof data.detail === "string") return data.detail;
   if (Array.isArray(data.detail) && data.detail[0]?.msg) return data.detail[0].msg;

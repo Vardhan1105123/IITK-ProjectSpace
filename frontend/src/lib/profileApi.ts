@@ -5,7 +5,11 @@ import { RecruitmentPublic } from "./recruitmentApi";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const API = BASE_URL;
 
-const extractError = (data: any, fallbackMsg: string): string => {
+type ApiErrorData = {
+  detail?: string | Array<{ msg?: string }>;
+} | null;
+
+const extractError = (data: ApiErrorData, fallbackMsg: string): string => {
   if (!data || !data.detail) return fallbackMsg;
   if (typeof data.detail === "string") return data.detail;
   if (Array.isArray(data.detail) && data.detail[0]?.msg) {

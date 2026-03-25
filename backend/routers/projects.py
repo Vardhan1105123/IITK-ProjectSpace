@@ -26,6 +26,10 @@ from core.utils import NotificationType
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
+def _is_team_member(project, user_id: uuid.UUID) -> bool:
+    return any(member.id == user_id for member in project.team_members)
+
+
 def _safe_filename(filename: str) -> str:
     if not filename:
         raise HTTPException(status_code=400, detail="Filename is required")
@@ -106,7 +110,7 @@ def update_existing_project(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
         )
-    if current_user not in project.team_members:
+    if not _is_team_member(project, current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only team members can edit this project.",
@@ -125,7 +129,7 @@ def delete_existing_project(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
         )
-    if current_user not in project.team_members:
+    if not _is_team_member(project, current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only team members can delete this project.",
@@ -148,7 +152,7 @@ def invite_project_member(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
         )
-    if current_user not in project.team_members:
+    if not _is_team_member(project, current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only team members can invite members.",
@@ -377,7 +381,7 @@ def upload_project_media(
         raise HTTPException(status_code=404, detail="Project not found")
 
     # SECURITY: Only team members can upload!
-    if current_user not in project.team_members:
+    if not _is_team_member(project, current_user.id):
         raise HTTPException(
             status_code=403, detail="Only team members can upload media."
         )

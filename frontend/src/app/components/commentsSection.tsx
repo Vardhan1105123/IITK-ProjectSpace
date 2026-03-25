@@ -38,6 +38,10 @@ function getInitials(name: string): string {
   return name.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
 }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 // Avatar
 const Avatar: React.FC<{ name: string; url?: string; size?: number }> = ({
   name, url, size = 34,
@@ -67,8 +71,8 @@ const ComposeBox: React.FC<{
     try {
       await onSubmit(trimmed);
       setText("");
-    } catch (e: any) {
-      setError(e.message || "Failed to post.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Failed to post."));
     } finally {
       setSubmitting(false);
     }
@@ -171,8 +175,8 @@ const CommentItem: React.FC<{
     try {
       await deleteComment(comment.id);
       onDelete(comment.id);
-    } catch (e: any) {
-      alert(e.message || "Failed to delete.");
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, "Failed to delete."));
       setDeleting(false);
     }
   };

@@ -68,6 +68,9 @@ function formatDate(iso: string | undefined | null): string {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const getFullUrl = (url?: string) => url ? (url.startsWith("http") ? url : `${API_BASE_URL}${url}`) : undefined;
 
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error && error.message ? error.message : fallback;
+
 function mapToRecruitment(r: RecruitmentPublic): Recruitment {
   return {
     id: r.id,
@@ -143,7 +146,7 @@ const RecruitmentSkeleton = () => (
 );
 
 /* RecruitmentPage */
-const RecruitmentPage: React.FC = () => {
+const RecruitmentPageContent: React.FC = () => {
   const searchParams        = useSearchParams();
   const router        = useRouter();
   const recruitmentId = searchParams.get("id") as string;
@@ -172,9 +175,10 @@ const RecruitmentPage: React.FC = () => {
         setRecruitment(mapToRecruitment(raw));
         setCurrentUserId(me.id);
         setCreatorId(raw.creator_id);
-      } catch (err: any) {
-        if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
-        if (err.message.includes("not found") || err.message.includes("404")) {
+      } catch (error: unknown) {
+        const message = getErrorMessage(error, "");
+        if (message === "Unauthorized") { router.replace("/auth"); return; }
+        if (message.includes("not found") || message.includes("404")) {
           setError("Recruitment not found.");
         } else {
           setError("Failed to load recruitment. Please try again.");
@@ -203,8 +207,8 @@ const RecruitmentPage: React.FC = () => {
           application_count: (prev.application_count ?? prev.applications.length) + 1,
         };
       });
-    } catch (err: any) {
-      setApplyError(err.message || "Failed to apply. Please try again.");
+    } catch (error: unknown) {
+      setApplyError(getErrorMessage(error, "Failed to apply. Please try again."));
     } finally {
       setApplying(false);
     }
@@ -217,8 +221,8 @@ const RecruitmentPage: React.FC = () => {
       const newStatus = recruitment.status === "Open" ? "Closed" : "Open";
       await updateRecruitment(recruitment.id, { status: newStatus });
       setRecruitment({ ...recruitment, status: newStatus });
-    } catch (err: any) {
-      alert(err.message || "Failed to update recruitment status.");
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, "Failed to update recruitment status."));
     } finally {
       setTogglingStatus(false);
     }
@@ -248,8 +252,8 @@ const RecruitmentPage: React.FC = () => {
           ),
         };
       });
-    } catch (err: any) {
-      alert(err.message || "Failed to update application status.");
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, "Failed to update application status."));
     } finally {
       setApplicationUpdating((prev) => ({ ...prev, [applicationId]: false }));
     }
@@ -274,7 +278,6 @@ const RecruitmentPage: React.FC = () => {
   else if (!isOpen) applyText = "Closed";
 
   return (
-    <Suspense>
     <div className="app-shell">
       <Header
         showEditProfile={false}
@@ -561,8 +564,13 @@ const RecruitmentPage: React.FC = () => {
         </main>
       </div>
     </div>
-    </Suspense>
   );
 };
+
+const RecruitmentPage: React.FC = () => (
+  <Suspense fallback={<RecruitmentSkeleton />}>
+    <RecruitmentPageContent />
+  </Suspense>
+);
 
 export default RecruitmentPage;

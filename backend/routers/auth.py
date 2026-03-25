@@ -32,6 +32,11 @@ def get_session():
 # Requesting OTP Endpoint
 @router.post("/request-otp", status_code=status.HTTP_201_CREATED)
 async def request_otp(request_data: UserBase, db: Session = Depends(get_session)):
+    if not request_data.fullname or not request_data.fullname.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Full name is required to request registration OTP.",
+        )
 
     if get_user_by_email(session=db, email=request_data.iitk_email):
         raise HTTPException(
@@ -49,7 +54,7 @@ async def request_otp(request_data: UserBase, db: Session = Depends(get_session)
 
     new_otp = OTPVerification(
         email=request_data.iitk_email,
-        full_name=request_data.fullname,
+        full_name=request_data.fullname.strip(),
         otp_code=otp_code,
         purpose="register",
         expires_at=datetime.utcnow() + timedelta(minutes=10),
@@ -60,7 +65,7 @@ async def request_otp(request_data: UserBase, db: Session = Depends(get_session)
     await send_otp_email(
         email_to=request_data.iitk_email,
         otp_code=otp_code,
-        name=request_data.fullname,
+        name=request_data.fullname.strip(),
         purpose="register",
     )
     return {"message": "Verification code sent successfully."}

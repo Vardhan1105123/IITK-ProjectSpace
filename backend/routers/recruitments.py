@@ -459,7 +459,7 @@ def update_application(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Application does not belong to this recruitment.",
         )
-    if current_user not in recruitment.recruiters:
+    if current_user.id not in [r.id for r in recruitment.recruiters]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only managing recruiters can update applications.",
@@ -508,7 +508,7 @@ def upload_recruitment_media(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    url_path = f"/recruitments/{recruitment_id}/media/{file.filename}"
+    url_path = f"/recruitments/{recruitment_id}/media/{safe_name}"
 
     updated_media = list(recruitment.media_urls) if recruitment.media_urls else []
     updated_media.append(url_path)

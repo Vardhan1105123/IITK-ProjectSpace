@@ -54,8 +54,11 @@ const ProjectIcon = () => (
 type TabType = "recruitment" | "project";
 const TAG_COLORS = ["teal", "blue", "red"] as const;
 
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error && error.message ? error.message : fallback;
+
 /* Profile Page */
-const ProfilePage: React.FC = () => {
+const ProfilePageContent: React.FC = () => {
   const [activeTab, setActiveTab]   = useState<TabType>("recruitment");
   const [profile, setProfile]       = useState<UserProfile | UserProfileView | null>(null);
   const [projects, setProjects]     = useState<ProjectPublic[]>([]);
@@ -83,11 +86,11 @@ const ProfilePage: React.FC = () => {
         const data = await fetchMyProfile();
         setProfile(data);
       }
-    } catch (err: any) {
-      if (err.message === "Unauthorized") {
+    } catch (error: unknown) {
+      if (getErrorMessage(error, "") === "Unauthorized") {
         router.replace("/auth");
       } else {
-        setError(err.message);
+        setError(getErrorMessage(error, "Failed to load profile."));
       }
     } finally {
       setLoading(false);
@@ -123,8 +126,8 @@ const isOwnProfile = !userId
           setProjects(data);
           setProjectsInitialized(true);
         }
-      } catch (err: any) {
-        if (err.message === "Unauthorized") {
+      } catch (error: unknown) {
+        if (getErrorMessage(error, "") === "Unauthorized") {
           router.replace("/auth");
           return;
         }
@@ -166,7 +169,6 @@ const isOwnProfile = !userId
   }
 
   return (
-    <Suspense fallback={<div>Loading profile data...</div>}>
       <div className="app-shell">
         <Header showEditProfile={isOwnProfile} />
 
@@ -280,8 +282,8 @@ const isOwnProfile = !userId
                   ? <p style={{ color: "#888", gridColumn: "1 / -1" }}>No recruitment posts yet.</p>
                   : recruitments.map((r) => (
                       <RecruitmentCard
-                        key={(r as any).project_id || (r as any).id}
-                        id={(r as any).project_id || (r as any).id}
+                        key={r.id}
+                        id={r.id}
                         title={r.title}
                         recruiter={profile.fullname ?? ""}
                         designation={profile.designation ?? ""}
@@ -297,8 +299,8 @@ const isOwnProfile = !userId
                   ? <p style={{ color: "#888", gridColumn: "1 / -1" }}>No project posts yet.</p>
                   : projects.map((p) => (
                       <ProjectCard
-                        key={(p as any).project_id || (p as any).id}
-                        id={(p as any).project_id || (p as any).id}
+                        key={p.id}
+                        id={p.id}
                         title={p.title}
                         author={profile.fullname ?? ""}
                         designation={profile.designation ?? ""}
@@ -312,8 +314,13 @@ const isOwnProfile = !userId
           </main>
         </div>
       </div>
-    </Suspense>
   );
 };
+
+const ProfilePage: React.FC = () => (
+  <Suspense fallback={<div>Loading profile data...</div>}>
+    <ProfilePageContent />
+  </Suspense>
+);
 
 export default ProfilePage;

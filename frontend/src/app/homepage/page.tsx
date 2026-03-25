@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { Suspense, useState, useEffect, useRef } from "react";
 import "./homePage.css";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import { getAllProjects, getProjectCount, ProjectSummary } from "@/lib/projectApi";
 import { getAllRecruitments, getRecruitmentCount, RecruitmentSummary } from "@/lib/recruitmentApi";
 import { getRepresentativeString } from "@/lib/formatTeam";
+
+export const dynamic = "force-dynamic";
 
 /* Types */
 export interface FeedMember {
@@ -54,6 +56,10 @@ function chunkPairs<T>(arr: T[]): T[][] {
 
 function getInitials(name: string): string {
   return name.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+}
+
+function isUnauthorizedError(error: unknown): boolean {
+  return error instanceof Error && error.message === "Unauthorized";
 }
 
 function timeAgo(isoDate: string): string {
@@ -569,8 +575,8 @@ const HomePage: React.FC = () => {
         setProjectsTotalPages(Math.max(1, Math.ceil(total / LIMIT)));
       }
       setProjectsInitialized(true);
-    } catch (err: any) {
-      if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
+    } catch (error: unknown) {
+      if (isUnauthorizedError(error)) { router.replace("/auth"); return; }
       setProjectsError("Failed to load projects. Please try again.");
     } finally {
       setProjectsLoading(false);
@@ -592,8 +598,8 @@ const HomePage: React.FC = () => {
         setRecruitmentsTotalPages(Math.max(1, Math.ceil(total / LIMIT)));
       }
       setRecruitmentsInitialized(true);
-    } catch (err: any) {
-      if (err.message === "Unauthorized") { router.replace("/loginPage"); return; }
+    } catch (error: unknown) {
+      if (isUnauthorizedError(error)) { router.replace("/auth"); return; }
       setRecruitmentsError("Failed to load recruitments. Please try again.");
     } finally {
       setRecruitmentsLoading(false);
@@ -635,7 +641,9 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="app-shell">
-      <Header showEditProfile={false} />
+      <Suspense fallback={<div />}>
+        <Header showEditProfile={false} />
+      </Suspense>
 
       {/* Global toast — rendered outside the feed so it always floats on top */}
       {/* Share popup */}
