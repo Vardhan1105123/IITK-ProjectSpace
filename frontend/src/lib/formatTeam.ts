@@ -6,7 +6,7 @@ const DESIGNATION_RANK: Record<string, number> = {
   "Associate Professor": 3,
   "Assistant Professor": 4,
   "Post-Doctoral Researcher": 5,
-  "PhD Scholar": 6,
+  "Ph.D Scholar": 6,
   "Postgraduate Student": 7,
   "Undergraduate Student": 8,
   "HAG_PROF": 1,

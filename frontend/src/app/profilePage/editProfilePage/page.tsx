@@ -286,7 +286,7 @@ const EditProfilePage: React.FC = () => {
                       <option value="" disabled>Select your designation</option>
                       <option value="Undergraduate Student">Undergraduate Student</option>
                       <option value="Postgraduate Student">Postgraduate Student</option>
-                      <option value="PhD Scholar">PhD Scholar</option>
+                      <option value="Ph.D Scholar">Ph.D Scholar</option>
                       <option value="Post-Doctoral Researcher">Post-Doctoral Researcher</option>
                       <option value="Assistant Professor">Assistant Professor</option>
                       <option value="Associate Professor">Associate Professor</option>
