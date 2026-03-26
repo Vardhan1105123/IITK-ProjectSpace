@@ -1,6 +1,6 @@
 # IITK ProjectSpace
 
-This full-stack web application is made as a course project of **CS253: Software Engineering** under the mentorship of TA Seetaramayya Lavu.
+This full-stack web application is made as a course project of **CS253: Software Development and Operations** under the mentorship of TA Seetaramayya Lavu.
 
 
 
@@ -21,7 +21,7 @@ The platform simplifies project discovery and team building with the following s
 
 The interface of the web app is intuitive and restricted strictly to the campus community via `@iitk.ac.in` OTP email verification, ensuring a secure and seamless experience.
 
-### Group Details (Team Kernel Panic)
+## Group Details (Team Kernel Panic)
 
 | Name | Roll no. | Email Id |
 | :--- | :--- | :--- |
@@ -36,7 +36,11 @@ The interface of the web app is intuitive and restricted strictly to the campus 
 | Shreyas Asthana | 241001 | shreyasa24@iitk.ac.in |
 | Sujal Satish Motagi | 241052 | sujalsm24@iitk.ac.in |
 
-### Software Documentation
+## Access to Deployed web application
+
+You can click [this link](http://13.60.171.224:3000) to access the deployed version of this web application. Currently the webapp is deployed on an AWS EC2 linux server. 
+
+## Software Documentation
 
 ### Software Requirement Specification Document
 
@@ -48,4 +52,4 @@ The Software Requirements Specification (SRS) document describes what the softwa
 
 The Software Design Document (SDD) describes software created to facilitate analysis, planning, implementation, and decision-making. This explains how the software product will be built to meet a set of technical requirements.
 
-**Link to SDD:** [IITK ProjectSpace Design Document](Documentation/IITK_ProjectSpace_Design_Document.pdf)
+**Link to SDD:** [IITK ProjectSpace Design Document](https://github.com/Aman02032006/IITK-ProjectSpace/blob/main/Documentation/IITK%20ProjectSpace%20SRS%20Document.pdf)
