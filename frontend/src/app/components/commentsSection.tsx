@@ -13,14 +13,16 @@ import {
   deleteComment,
 } from "@/lib/commentApi";
 
-// Helpers
+// Helpers for API and formatting
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+// Builds full URL for images
 function getFullUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
   return url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
 }
 
+// Converts ISO timestamp into relative time
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins  = Math.floor(diff / 60000);
@@ -35,15 +37,17 @@ function timeAgo(iso: string): string {
   });
 }
 
+// Extracts initials from name
 function getInitials(name: string): string {
   return name.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
 }
 
+// Safely extracts error message
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
-// Avatar
+// Avatar component
 const Avatar: React.FC<{ name: string; url?: string; size?: number }> = ({
   name, url, size = 34,
 }) => (
@@ -52,7 +56,7 @@ const Avatar: React.FC<{ name: string; url?: string; size?: number }> = ({
   </div>
 );
 
-// Compose Box
+// Comment compose box
 const ComposeBox: React.FC<{
   placeholder?: string;
   onSubmit: (content: string) => Promise<void>;
@@ -64,6 +68,7 @@ const ComposeBox: React.FC<{
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState<string | null>(null);
 
+  // Handles submit
   const handleSubmit = async () => {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -79,6 +84,7 @@ const ComposeBox: React.FC<{
     }
   };
 
+  // Keyboard shortcuts
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit();
     if (e.key === "Escape" && onCancel) onCancel();
@@ -116,7 +122,7 @@ const ComposeBox: React.FC<{
   );
 };
 
-// Single Comment
+// Single comment component
 const CommentItem: React.FC<{
   comment: Comment;
   currentUserId: string | null;
@@ -136,6 +142,7 @@ const CommentItem: React.FC<{
 }) => {
   const router = useRouter();
 
+  // Reply & delete state
   const [showReplyBox, setShowReplyBox]       = useState(false);
   const [replies, setReplies]                 = useState<Comment[]>([]);
   const [repliesLoaded, setRepliesLoaded]     = useState(false);
@@ -147,6 +154,7 @@ const CommentItem: React.FC<{
 
   const REPLY_PAGE = 5;
 
+  // Loads replies
   const loadReplies = useCallback(
     async (skip: number) => {
       setLoadingReplies(true);
@@ -157,7 +165,6 @@ const CommentItem: React.FC<{
         setReplySkip(skip + page.replies.length);
         setRepliesLoaded(true);
       } catch {
-        // silently ignore
       } finally {
         setLoadingReplies(false);
       }
@@ -165,12 +172,14 @@ const CommentItem: React.FC<{
     [comment.id]
   );
 
+  // Handles reply
   const handleReply = async (content: string) => {
     await onReply(comment.id, content);
     setShowReplyBox(false);
     await loadReplies(0);
   };
 
+  // Handles delete
   const handleDelete = async () => {
     setDeleting(true);
     try {
@@ -191,22 +200,16 @@ const CommentItem: React.FC<{
 
   return (
     <div className={`cs-comment-row ${depth > 0 ? "cs-comment-row--nested" : ""}`}>
-
-      {/* avatar + optional downward thread line */}
       <div className="cs-gutter">
         <Avatar
           name={comment.author.fullname}
           url={getFullUrl(comment.author.profile_picture_url)}
           size={avatarSize}
         />
-        {/* Vertical line from avatar down to the last reply when expanded */}
         {hasExpanded && <div className="cs-gutter-line" />}
       </div>
 
-      {/* Main content area */}
       <div className="cs-comment-body">
-
-        {/* Header */}
         <div className="cs-comment-header">
           <button
             className="cs-comment-author"
@@ -234,10 +237,8 @@ const CommentItem: React.FC<{
           )}
         </div>
 
-        {/* Content */}
         <p className="cs-comment-content">{comment.content}</p>
 
-        {/* Action row */}
         <div className="cs-comment-actions">
           {depth < 5 && (
             <button
@@ -270,7 +271,6 @@ const CommentItem: React.FC<{
           )}
         </div>
 
-        {/* Reply compose box */}
         {showReplyBox && (
           <ComposeBox
             placeholder={`Reply to ${comment.author.fullname}…`}
@@ -281,7 +281,6 @@ const CommentItem: React.FC<{
           />
         )}
 
-        {/* Expanded replies, nested inside the body */}
         {hasExpanded && (
           <div className="cs-replies">
             {replies.map((reply, idx) => (
@@ -308,7 +307,6 @@ const CommentItem: React.FC<{
             )}
           </div>
         )}
-
       </div>
 
       {showDeleteConfirm && (
@@ -326,7 +324,7 @@ const CommentItem: React.FC<{
   );
 };
 
-// CommentsSection
+// Props for comments section
 interface CommentsSectionProps {
   postId: string;
   postType: "project" | "recruitment";
@@ -334,6 +332,7 @@ interface CommentsSectionProps {
   postCreatorId: string | null;
 }
 
+// Main comments section
 const CommentsSection: React.FC<CommentsSectionProps> = ({
   postId,
   postType,
@@ -349,6 +348,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
 
   const PAGE = 20;
 
+  // Fetch comments from API
   const fetchComments = useCallback(
     async (currentSkip: number, append = false) => {
       if (currentSkip === 0) setLoading(true);
@@ -375,6 +375,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
     fetchComments(0);
   }, [fetchComments]);
 
+  // Handles new comment post
   const handlePost = async (content: string) => {
     const newComment = await createComment({
       content,
@@ -385,6 +386,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
     setTotal((t) => t + 1);
   };
 
+  // Handles reply creation
   const handleReply = async (parentId: string, content: string) => {
     await createComment({
       content,
@@ -394,6 +396,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
     });
   };
 
+  // Removes deleted comment from state
   const handleDelete = (commentId: string) => {
     setComments((prev) => prev.filter((c) => c.id !== commentId));
     setTotal((t) => Math.max(0, t - 1));

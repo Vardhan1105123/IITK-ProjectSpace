@@ -20,10 +20,13 @@ import {
   SearchUserResult,
 } from "@/lib/searchApi";
 
+/* Types */
 type TabType = "recruitment" | "project" | "user";
 
+/* Constants */
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+/* Helper Functions */
 const toAbsoluteUrl = (url?: string | null) => {
   if (!url) return undefined;
   return url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
@@ -40,6 +43,7 @@ const sameStringArray = (a: string[], b: string[]) =>
 const getErrorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error && error.message ? error.message : fallback;
 
+/* Options Lists */
 const SKILL_OPTIONS = Array.from(
   new Set(
     (skillsSeed as Array<{ value: string; label: string }>)
@@ -106,6 +110,7 @@ const DEPARTMENT_OPTIONS = [
   "Sustainable Energy Engineering",
 ];
 
+/* Icons */
 const RecruitIcon = () => (
   <svg
     width="16"
@@ -154,6 +159,7 @@ const UserIcon = () => (
   </svg>
 );
 
+/* Main Search Page Content Component */
 const SearchPageContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -167,6 +173,7 @@ const SearchPageContent: React.FC = () => {
   const urlPrerequisites = searchParams.getAll("prerequisite").map((v) => v.trim()).filter(Boolean);
   const urlDomains = searchParams.getAll("domain").map((v) => v.trim()).filter(Boolean);
 
+  /* State & Hooks */
   const [searchQuery, setSearchQuery] = useState(urlQuery);
   const [activeTab, setActiveTab] = useState<TabType>(urlTab);
   const [selectedDesignations, setSelectedDesignations] = useState<string[]>(urlDesignations);
@@ -191,6 +198,7 @@ const SearchPageContent: React.FC = () => {
   const [projectResults, setProjectResults] = useState<SearchProjectResult[]>([]);
   const [userResults, setUserResults] = useState<SearchUserResult[]>([]);
 
+  /* Computed Memos */
   const trimmedQuery = useMemo(() => searchQuery.trim(), [searchQuery]);
   const designations = useMemo(
     () => Array.from(new Set(selectedDesignations.map((s) => s.trim()).filter(Boolean))),
@@ -232,6 +240,7 @@ const SearchPageContent: React.FC = () => {
       ? hasRecruitmentFilters
       : hasProjectFilters;
 
+  /* Effects */
   useEffect(() => {
     if (urlQuery !== searchQuery) setSearchQuery(urlQuery);
   }, [urlQuery]);
@@ -352,6 +361,7 @@ const SearchPageContent: React.FC = () => {
     router,
   ]);
 
+  /* State Updater Helpers */
   const addUnique = (
     value: string,
     setter: React.Dispatch<React.SetStateAction<string[]>>
@@ -368,6 +378,7 @@ const SearchPageContent: React.FC = () => {
     setter((prev) => prev.filter((item) => item !== value));
   };
 
+  /* Render Selected Chips */
   const selectedChips: Array<React.ReactNode> = [];
   if (activeTab === "user") {
     designations.forEach((item) => {

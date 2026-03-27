@@ -1,4 +1,4 @@
-/* OTP PopUp */
+/* OTP popup backdrop overlay */
 .otp-backdrop {
   position: fixed;
   inset: 0;
@@ -11,6 +11,7 @@
   font-family: var(--font-montserrat);
 }
 
+/* OTP modal card container */
 .otp-card {
   width: clamp(15rem, 25vw, 25rem);
   padding: clamp(20px, 2vw, 40px);
@@ -20,18 +21,21 @@
   text-align: center;
 }
 
+/* OTP title text */
 .otp-heading {
   font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 500;
   margin-bottom: clamp(0.25rem, 2vw, 0.5rem);
 }
 
+/* OTP descriptive message */
 .otp-message {
   font-size: clamp(0.8rem, 3vw, 0.95rem);
   opacity: 0.8;
   margin-bottom: clamp(1rem, 3vw, 2rem);
 }
 
+/* Label for OTP input */
 .otp-card label {
   display: block;
   font-size: clamp(0.85rem, 3vw, 1.1rem);
@@ -40,6 +44,7 @@
   text-align: left;
 }
 
+/* OTP input field */
 .otp-card input {
   width: 100%;
   padding: clamp(9px, 2vw, 14px) clamp(10px, 2vw, 16px);

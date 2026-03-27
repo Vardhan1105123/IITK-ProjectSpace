@@ -13,40 +13,48 @@ import {
 } from "../../lib/authApi";
 import { useRouter } from "next/navigation";
 
-
-
+// Possible UI modes for authentication flow
 type Mode = "login" | "register-step1" | "register-password" | "forgot-email" | "forgot-reset";
 
+// Helper to extract readable error messages
 const getErrorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error && error.message ? error.message : fallback;
 
+// Main login/register component
 const LoginPage = () => {
+  // Form field states
   const [fullname, setFullname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [verifiedOtp, setVerifiedOtp] = useState("");
 
+  // UI state controls
   const [mode, setMode] = useState<Mode>("login");
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpPurpose, setOtpPurpose] = useState<"register" | "reset" | null>(null);
 
+  // Alert popup configuration
   const [alertConfig, setAlertConfig] = useState<{show: boolean, message: string, type: "success" | "error"}>({
     show: false,
     message: "",
     type: "success"
   });
 
+  // Loading spinner state
   const [isLoading, setIsLoading] = useState(false)
 
   const router = useRouter();
 
+  // Determines if login/register toggle should be visible
   const showTabs = mode === "login" || mode === "register-step1" || mode === "register-password";
   
-    const triggerAlert = (message: string, type: "success" | "error") => {
-      setAlertConfig({ show: true, message, type });
-    };
+  // Shows alert popup
+  const triggerAlert = (message: string, type: "success" | "error") => {
+    setAlertConfig({ show: true, message, type });
+  };
 
+  // Handles switching between modes and resets state
   const handleModeSwitch = (newMode: Mode) => {
     setMode(newMode);
     setIsLoading(false);
@@ -59,6 +67,7 @@ const LoginPage = () => {
     setAlertConfig({ ...alertConfig, show: false });
   };
 
+  // Login handler
   const handleLogin = async() => {
     setIsLoading(true);
     try {
@@ -76,6 +85,7 @@ const LoginPage = () => {
     }
   };
 
+  // Opens OTP modal for registration or password reset
   const openOtp = async (purpose: "register" | "reset") => {
     setIsLoading(true);
     try {
@@ -103,6 +113,7 @@ const LoginPage = () => {
     }
   };
 
+  // OTP verification handler
   const handleOtpVerify = async (otp: string) => {
     if (!otpPurpose) {
       triggerAlert("OTP purpose is missing. Please request OTP again.", "error");
@@ -127,6 +138,7 @@ const LoginPage = () => {
     }
   };
 
+  // Registration final step handler
   const handleRegister = async () => {
     setIsLoading(true);
     if (password !== confirmPassword) {
@@ -146,6 +158,7 @@ const LoginPage = () => {
     }
   };
 
+  // Password reset handler
   const handlePasswordReset = async () => {
     setIsLoading(true);
     if (password !== confirmPassword) {
@@ -167,12 +180,16 @@ const LoginPage = () => {
 
   return (
     <div className="auth-container">
+      {/* Background image */}
       <div className="bg-image"></div>
+      {/* Overlay gradient */}
       <div className="bg-overlay"></div>
 
+      {/* Auth card container */}
       <div className={`auth-card ${mode !== "login" ? "expanded" : ""}`}>
         <h1 className="welcome-title">Welcome</h1>
 
+        {/* Login/Register toggle */}
         {showTabs && (
           <div className="toggle">
             <button className={mode === "login" ? "active" : ""} onClick={() => handleModeSwitch("login")}>Login</button>
@@ -198,7 +215,7 @@ const LoginPage = () => {
           </>
         )}
 
-        {/* REGISTER #1 */}
+        {/* REGISTER STEP 1 */}
         {mode === "register-step1" && (
           <>
             <label>Full Name</label>
@@ -213,7 +230,7 @@ const LoginPage = () => {
           </>
         )}
 
-        {/* REGISTER #2 PASSWORD */}
+        {/* REGISTER PASSWORD STEP */}
         {mode === "register-password" && (
           <>
             <label>Full Name</label>
@@ -235,7 +252,7 @@ const LoginPage = () => {
           </>
         )}
 
-        {/* Forgot Password #1 */}
+        {/* FORGOT EMAIL STEP */}
         {mode === "forgot-email" && (
           <>
             <h1 className = "section-title">Verify Email</h1>
@@ -252,7 +269,7 @@ const LoginPage = () => {
           </>
         )}
 
-        {/* Forgot PAssword #2 */}
+        {/* FORGOT RESET STEP */}
         {mode === "forgot-reset" && (
           <>
             <h3 className="section-title">Set New Password</h3>
@@ -272,7 +289,7 @@ const LoginPage = () => {
           </>
         )}
 
-        {/* OTP PopUp */}
+        {/* OTP popup */}
         {showOtpModal && (
           <OtpPopUp
             message={
@@ -285,7 +302,7 @@ const LoginPage = () => {
           />
         )}
 
-        {/* NEW: Custom Alert PopUp */}
+        {/* Alert popup */}
         {alertConfig.show && (
           <AlertPopUp 
             message={alertConfig.message} 
@@ -295,6 +312,7 @@ const LoginPage = () => {
         )}
       </div>
 
+      {/* Right side hero section */}
       <div className="hero-content">
         <img src="/Logo.png" alt="Logo" className="hero-image" />
         <h2>IITK ProjectSpace</h2>

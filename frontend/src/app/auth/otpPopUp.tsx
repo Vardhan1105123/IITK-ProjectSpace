@@ -3,19 +3,25 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import "./otpPopUp.css";
 
+// Props for OTP popup component
 type OtpPopUpProps = {
   message: string;
   onVerify: (otp: string) => void;
   onClose: () => void;
 };
 
+// OTP verification modal component
 const OtpPopUp = ({ message, onVerify, onClose }: OtpPopUpProps) => {
+  // Stores OTP input value
   const [otp, setOtp] = useState("");
 
+  // Handles verify button click
   const handleVerifyClick = () => {
     if(otp.length !== 6) return;
     onVerify(otp);
   }
+
+  // Disables background scroll and adds Escape key listener
   useEffect(() => {
     const originalStyle = document.body.style.overflow;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -32,6 +38,7 @@ const OtpPopUp = ({ message, onVerify, onClose }: OtpPopUpProps) => {
     };
   }, [onClose]);
 
+  // Render popup using React portal
   return createPortal(
     <div className="otp-backdrop">
       <div className="otp-card">

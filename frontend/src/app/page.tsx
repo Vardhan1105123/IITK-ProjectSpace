@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import axios from "axios"
 import LoginPage from "./auth/page"
 
+// Main root route component; checks backend connectivity and renders the entry login page
 export default function Home() {
   const [status, setStatus] = useState("Connecting to backend...")
 

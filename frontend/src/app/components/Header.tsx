@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import "./Header.css";
 
-/* ── Types ── */
+/* Props for header component */
 export interface HeaderProps {
   showEditProfile?: boolean;
   editHref?: string;
@@ -18,7 +18,7 @@ export interface HeaderProps {
   onSearchKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
-/* ── Icons ── */
+/* Search icon SVG */
 const SearchIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -27,7 +27,7 @@ const SearchIcon = () => (
   </svg>
 );
 
-
+/* Small X icon for removing tags */
 const XSmall = () => (
   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -35,6 +35,7 @@ const XSmall = () => (
   </svg>
 );
 
+/* Medium X icon for clearing search */
 const XMedium = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -42,7 +43,7 @@ const XMedium = () => (
   </svg>
 );
 
-/* ── Component ── */
+/* Header component */
 const Header: React.FC<HeaderProps> = ({
   showEditProfile = false,
   editHref,           
@@ -59,12 +60,14 @@ const Header: React.FC<HeaderProps> = ({
   const pathname = usePathname();
   const currentParams = useSearchParams();
 
+  // Determines if tag search mode is active
   const isSearchMode = searchTags !== undefined;
   const [localValue, setLocalValue] = useState("");
   const [showDrop, setShowDrop] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Submits search query
   const submitSearch = useCallback((rawQuery: string) => {
     const query = rawQuery.trim();
     const params = new URLSearchParams();
@@ -76,6 +79,7 @@ const Header: React.FC<HeaderProps> = ({
     else router.push(target);
   }, [currentParams, pathname, router]);
 
+  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node))
@@ -85,6 +89,7 @@ const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Debounced search when not in tag mode
   useEffect(() => {
     if (isSearchMode || pathname === "/searchPage") return;
     const query = localValue.trim();
@@ -93,10 +98,12 @@ const Header: React.FC<HeaderProps> = ({
     return () => clearTimeout(timer);
   }, [isSearchMode, pathname, localValue, submitSearch]);
 
+  // Filter suggestions
   const filteredSuggestions = searchSuggestions.filter(
     (t) => t.toLowerCase().includes(searchQuery.toLowerCase()) && !(searchTags ?? []).includes(t)
   );
 
+  // Checks if tags exist
   const hasTags = (searchTags ?? []).length > 0;
 
   return (
@@ -106,7 +113,7 @@ const Header: React.FC<HeaderProps> = ({
         <img src="/Logo.png" alt="Logo" />
       </div>
 
-      {/* Search */}
+      {/* Search wrapper */}
       <div className="header__search-wrapper" ref={wrapperRef}>
         <span className="header__search-icon"><SearchIcon /></span>
 
@@ -123,7 +130,7 @@ const Header: React.FC<HeaderProps> = ({
             </span>
           ))}
 
-          {/* Input */}
+          {/* Search input */}
           <input
             ref={inputRef}
             type="text"
@@ -148,7 +155,7 @@ const Header: React.FC<HeaderProps> = ({
             spellCheck={false}
           />
 
-          {/* Clear */}
+          {/* Clear all tags/search */}
           {isSearchMode && (hasTags || searchQuery) && (
             <button className="header__search-clear"
               onMouseDown={(e) => {
@@ -163,7 +170,7 @@ const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Dropdown */}
+        {/* Suggestions dropdown */}
         {isSearchMode && showDrop && filteredSuggestions.length > 0 && (
           <div className="header__suggestions">
             <p className="header__suggestions-label">Suggested Tags</p>
@@ -183,15 +190,14 @@ const Header: React.FC<HeaderProps> = ({
         )}
       </div>
 
-      {/* Profile page edit button */}
-      {/* Edit Profile */}
+      {/* Profile edit button */}
       {showEditProfile && (
         <Link href="/profilePage/editProfilePage" className="header__edit-btn">
           Edit Profile
         </Link>
       )}
 
-      {/* edit button for project / recruitment pages */}
+      {/* Generic edit button */}
       {editHref && (
         <Link href={editHref} className="header__edit-btn">
           {editLabel}

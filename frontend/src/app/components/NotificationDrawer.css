@@ -1,3 +1,4 @@
+/* Main container for the notification drawer overlay */
 .notif-drawer {
   --notif-panel-width: 430px;
   position: fixed;
@@ -10,6 +11,7 @@
   pointer-events: auto;
 }
 
+/* Semi-transparent background overlay behind the sliding panel */
 .notif-backdrop {
   position: absolute;
   inset: 0;
@@ -38,6 +40,7 @@
   pointer-events: auto;
 }
 
+/* Sliding side panel containing the notifications list */
 .notif-panel {
   position: absolute;
   top: var(--header-height);
@@ -134,6 +137,7 @@
   min-height: 0;
 }
 
+/* Individual notification summary list item */
 .notif-item {
   width: 100%;
   border: none;
@@ -257,6 +261,7 @@
   color: #9b3e3e;
 }
 
+/* Expanded detail view card for a selected notification */
 .notif-detail {
   position: absolute;
   right: calc(min(var(--notif-panel-width), 94vw) + 16px);
@@ -457,6 +462,7 @@
   color: #ffffff;
 }
 
+/* Empty state container when there are no notifications */
 .notif-empty {
   display: grid;
   place-items: center;

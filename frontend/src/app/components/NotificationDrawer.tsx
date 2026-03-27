@@ -42,10 +42,12 @@ interface InviteTarget {
 const UUID_PATTERN =
   /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
 
+// Removes quotes and trims whitespace from a UUID candidate string
 function sanitizeUuidCandidate(value: string): string {
   return value.trim().replace(/^['"`]+|['"`]+$/g, "");
 }
 
+// Extracts a valid UUID string from a given input string
 function extractValidUuid(value?: string | null): string | null {
   if (!value) return null;
   const cleaned = sanitizeUuidCandidate(value);
@@ -53,6 +55,7 @@ function extractValidUuid(value?: string | null): string | null {
   return match;
 }
 
+// Converts an ISO date string into a relative time string (e.g., "5m ago")
 function getRelativeTime(iso: string): string {
   const timestamp = new Date(iso).getTime();
   const diff = Date.now() - timestamp;
@@ -72,6 +75,7 @@ function getRelativeTime(iso: string): string {
   });
 }
 
+// Returns an appropriate label for actions based on notification type
 function getActionLabel(type: string): string {
   switch (type) {
     case "NEW_APPLICATION":
@@ -91,6 +95,7 @@ function getActionLabel(type: string): string {
   }
 }
 
+// Determines if an action primary button should be shown for a notification
 function shouldShowPrimaryAction(notification: NotificationRead, hasInviteTarget: boolean): boolean {
   if (hasInviteTarget) return false;
   if (notification.type === "APPLICATION_RESULT") return false;
@@ -98,6 +103,7 @@ function shouldShowPrimaryAction(notification: NotificationRead, hasInviteTarget
   return true;
 }
 
+// Resolves internal links or absolute URLs from notification paths
 function resolveClientLink(link: string): string | null {
   if (!link) return null;
   if (link.startsWith("http://") || link.startsWith("https://")) return link;
@@ -111,6 +117,7 @@ function resolveClientLink(link: string): string | null {
   return link;
 }
 
+// Parses a target project or recruitment ID from a given notification
 function getInviteTarget(notification: NotificationRead | null): InviteTarget | null {
   if (!notification || notification.type !== "VERIFICATION_REQUEST") return null;
 
@@ -162,12 +169,14 @@ function getInviteTarget(notification: NotificationRead | null): InviteTarget | 
   return null;
 }
 
+// Appends API base URL for relative avatar image links
 function withAbsoluteAvatar(url?: string | null): string | undefined {
   if (!url) return undefined;
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   return `${API_BASE_URL}${url}`;
 }
 
+// Renders appropriate icon graphic depending on the notification type
 function NotificationIcon({ type }: { type: string }) {
   if (type === "NEW_COMMENT" || type === "COMMENT_REPLY") {
     return (
@@ -203,6 +212,7 @@ function NotificationIcon({ type }: { type: string }) {
   );
 }
 
+// Main sliding drawer component to display and interact with notifications
 const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
   open,
   onClose,

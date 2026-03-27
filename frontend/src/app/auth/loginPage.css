@@ -1,3 +1,4 @@
+/* Main container for auth page layout */
 .auth-container {
   position: relative;
   height: 100vh;
@@ -10,14 +11,14 @@
   justify-content: flex-start;
 }
 
-/* BACKGROUND IMAGE */
+/* Background image layer */
 .bg-image {
   position: absolute;
   inset: 0;  
   background: url("/iitkbg-image.jpg") center/cover no-repeat;
 }
 
-/* DARK OVERLAY */
+/* Dark gradient overlay on background */
 .bg-overlay {
   position: absolute;
   inset: 0;
@@ -29,7 +30,7 @@
   backdrop-filter: blur(1px);
 }
 
-/* FLOATING CARD */
+/* Floating authentication card */
 .auth-card {
   width: 40%;
   height: 100%;
@@ -44,14 +45,17 @@
   transition: 0.3s ease;
 }
 
+/* Expanded card state */
 .auth-card.expanded {
   padding-bottom: 50px;
 }
 
+/* Custom scrollbar width */
 .auth-card::-webkit-scrollbar {
   width: 8px;
 }
 
+/* Welcome title text */
 .welcome-title {
   text-align: center;
   margin-bottom: clamp(1rem, 3vw, 2rem);
@@ -59,6 +63,7 @@
   font-size: clamp(1.5rem, 3vw, 3rem);
 }
 
+/* Section subtitle */
 .section-title {
   text-align: center;
   font-size: clamp(1rem, 3vw, 1.3rem);
@@ -67,7 +72,7 @@
   font-weight: 500;
 }
 
-/* HERO CONTENT AND LOGO */
+/* Hero text/logo container */
 .hero-content {
   flex: 1;
   display: flex;
@@ -79,6 +84,7 @@
   z-index: 2;
 }
 
+/* Hero heading */
 .hero-content h2 {
   font-size: clamp(1.5rem, 4vw, 3rem);
   font-weight: 500;
@@ -88,6 +94,7 @@
     0 6px 20px rgba(0, 0, 0, 1);
 }
 
+/* Hero description text */
 .hero-content p {
   font-size: clamp(0.5rem, 3vw, 1rem);
   opacity: 0.9;
@@ -96,6 +103,7 @@
     0 6px 20px rgba(0, 0, 0, 1);
 }
 
+/* Hero logo image */
 .hero-image {
   width: clamp(200px, 30vw, 300px);
   height: auto;
@@ -104,7 +112,7 @@
   filter: drop-shadow(0 8px 10px rgba(0,0,0,1));
 }
 
-/* TOGGLE */
+/* Toggle container for login/signup */
 .toggle {
   display: flex;
   width: 90%;
@@ -115,6 +123,7 @@
   font-size: clamp(0.7rem, 3vw, 1.1rem);
 }
 
+/* Toggle buttons */
 .toggle button {
   flex: 1;
   border: none;
@@ -126,12 +135,14 @@
   transition: 0.2s ease;
 }
 
+/* Active toggle button */
 .toggle .active {
   background: white;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   cursor: auto;
 }
 
+/* Instruction/helper text */
 .instruction-text {
   text-align: center;
   font-size: clamp(0.8rem, 2.5vw, 0.95rem);
@@ -141,7 +152,7 @@
   padding: 0 10px;
 }
 
-/* LABELS */
+/* Form labels */
 .auth-card label {
   font-size: clamp(0.9rem, 3vw, 1rem);
   font-weight: 500;
@@ -150,7 +161,7 @@
   width: 90%
 }
 
-/* INPUTS */
+/* Form inputs */
 .auth-card input {
   width: 90%;
   padding: 10px 15px;
@@ -165,20 +176,21 @@
   margin-left: auto;
 }
 
+/* Password input styling */
 .auth-card input[type = "password"] {
   font-family: Verdana, sans-serif;
   font-size: 1rem;
   letter-spacing: 1px;
 }
 
+/* Password placeholder styling */
 .auth-card input[type = "password"]::placeholder {
   font-family: var(--font-montserrat);
   font-size: 0.95rem;
   letter-spacing: normal;
 }
 
-
-/* BUTTONS */
+/* Primary action button */
 .primary-btn {
   width: 60%;
   padding: 8px;
@@ -193,12 +205,14 @@
   transition: 0.2s ease;
 }
 
+/* Hover effect for primary button */
 .primary-btn:hover{
   transform: translateY(-0.5px);
   box-shadow: 0 5px 10px rgba(0, 29, 57, 0.3);
   margin: 60px auto 20px auto;
 }
 
+/* Spinner inside button */
 .button-spinner {
   width: 20px;
   height: 20px;
@@ -209,17 +223,20 @@
   margin: 0 auto;
 }
 
+/* Spinner animation */
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 
+/* Disabled button state */
 button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
+/* Google login button */
 .google-btn {
   width: 60%;
   display: block;
@@ -234,12 +251,14 @@ button:disabled {
   transition: 0.2s ease;
 }
 
+/* Hover effect for Google button */
 .google-btn:hover {
   background: #f7f8fa;
   transform: translateY(-1px);
   box-shadow: 0 5px 10px rgba(0, 29, 57, 0.3);
 }
 
+/* Password helper text */
 .password-hint {
   width: 90%;
   margin: -4px auto 12px auto;
@@ -248,6 +267,7 @@ button:disabled {
   line-height: 1.4;
 }
 
+/* Link text */
 .link {
   font-size: clamp(0.7rem, 3vw, 0.8rem);
   text-align: center;
@@ -255,6 +275,7 @@ button:disabled {
   color: #0000009f;
 }
 
+/* Responsive layout for smaller screens */
 @media (max-width: 1100px) {
   .auth-container {
     flex-direction: column;

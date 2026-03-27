@@ -1,7 +1,9 @@
+/* Tailwind base directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Global root CSS variables for Tailwind styling themes */
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -106,6 +108,7 @@
   --sidebar-ring: oklch(0.705 0.015 286.067);
 }
 
+/* Fallback dark mode overrides for standard tokens */
 .dark {
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
@@ -140,6 +143,7 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
+/* Base semantic constants and component-level tokens */
 :root {
   --color-darkest:   #001D39;
   --color-dark:      #0A4174;

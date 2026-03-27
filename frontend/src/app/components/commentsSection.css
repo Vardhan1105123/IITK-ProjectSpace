@@ -1,10 +1,10 @@
-/* Root */
+/* Root container for comments section */
 .cs-root {
   margin-top: 12px;
   padding-top: 24px;
 }
 
-/* Header */
+/* Header container */
 .cs-header {
   display: flex;
   align-items: center;
@@ -12,12 +12,14 @@
   margin-bottom: 18px;
 }
 
+/* Comments title */
 .cs-title {
   font-size: 17px;
   font-weight: 700;
   color: var(--text-primary);
 }
 
+/* Comment count badge */
 .cs-count {
   background: var(--color-lightest);
   color: var(--color-dark);
@@ -28,7 +30,7 @@
   letter-spacing: 0.02em;
 }
 
-/* Compose */
+/* Compose box container */
 .cs-compose {
   background: var(--bg-page);
   border: 1px solid var(--border-color);
@@ -38,10 +40,12 @@
   transition: border-color 0.18s;
 }
 
+/* Highlight compose on focus */
 .cs-compose:focus-within {
   border-color: var(--color-teal);
 }
 
+/* Compact compose variant */
 .cs-compose--compact {
   margin-top: 10px;
   margin-bottom: 0;
@@ -49,6 +53,7 @@
   border-radius: 9px;
 }
 
+/* Comment textarea */
 .cs-compose-input {
   width: 100%;
   border: none;
@@ -61,10 +66,12 @@
   outline: none;
 }
 
+/* Placeholder text */
 .cs-compose-input::placeholder {
   color: var(--text-muted);
 }
 
+/* Compose footer buttons container */
 .cs-compose-footer {
   display: flex;
   align-items: center;
@@ -73,17 +80,20 @@
   margin-top: 8px;
 }
 
+/* Keyboard hint text */
 .cs-compose-hint {
   font-size: 11px;
   color: var(--text-muted);
 }
 
+/* Compose error message */
 .cs-compose-error {
   font-size: 12px;
   color: #a53d2a;
   margin-right: auto;
 }
 
+/* Cancel button */
 .cs-compose-cancel {
   padding: 5px 14px;
   background: transparent;
@@ -96,11 +106,13 @@
   transition: color 0.15s, border-color 0.15s;
 }
 
+/* Cancel hover */
 .cs-compose-cancel:hover {
   color: var(--text-primary);
   border-color: var(--text-muted);
 }
 
+/* Submit button */
 .cs-compose-btn {
   padding: 5px 18px;
   background: var(--color-dark);
@@ -113,22 +125,24 @@
   transition: background 0.18s, opacity 0.18s;
 }
 
+/* Submit hover */
 .cs-compose-btn:hover:not(:disabled) {
   background: var(--color-mid);
 }
 
+/* Submit disabled state */
 .cs-compose-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-/* Comment list */
+/* Comments list container */
 .cs-list {
   display: flex;
   flex-direction: column;
 }
 
-/* Comment row */
+/* Individual comment row */
 .cs-comment-row {
   display: flex;
   gap: 12px;
@@ -137,17 +151,18 @@
   position: relative;
 }
 
+/* Remove last border */
 .cs-comment-row:last-child {
   border-bottom: none;
 }
 
-/* Nested rreplies */
+/* Nested reply row */
 .cs-comment-row--nested {
   padding: 10px 0 4px;
   border-bottom: none;
 }
 
-/* Avatar + vertical thread line */
+/* Avatar gutter */
 .cs-gutter {
   display: flex;
   flex-direction: column;
@@ -156,6 +171,7 @@
   width: 34px;
 }
 
+/* Vertical reply line */
 .cs-gutter-line {
   width: 2px;
   flex: 1;
@@ -165,7 +181,7 @@
   margin-top: 6px;
 }
 
-/* Avatar */
+/* Avatar circle */
 .cs-avatar {
   border-radius: 50%;
   background: linear-gradient(135deg, var(--color-sky), var(--color-teal));
@@ -178,6 +194,7 @@
   overflow: hidden;
 }
 
+/* Avatar image */
 .cs-avatar img {
   width: 100%;
   height: 100%;
@@ -185,12 +202,13 @@
   border-radius: 50%;
 }
 
-/* Comment body */
+/* Comment content container */
 .cs-comment-body {
   flex: 1;
   min-width: 0;
 }
 
+/* Comment header */
 .cs-comment-header {
   display: flex;
   align-items: center;
@@ -199,7 +217,7 @@
   flex-wrap: wrap;
 }
 
-/* Clickable author name */
+/* Author clickable name */
 .cs-comment-author {
   background: none;
   border: none;
@@ -213,6 +231,7 @@
   line-height: 1;
 }
 
+/* Author hover */
 .cs-comment-author:hover {
   color: var(--color-teal);
   text-decoration: underline;
@@ -233,11 +252,13 @@
   flex-shrink: 0;
 }
 
+/* Comment timestamp */
 .cs-comment-time {
   font-size: 12px;
   color: var(--text-muted);
 }
 
+/* Delete comment button */
 .cs-comment-delete {
   margin-left: auto;
   font-size: 12px;
@@ -252,11 +273,13 @@
   font-family: inherit;
 }
 
+/* Delete hover */
 .cs-comment-delete:hover:not(:disabled) {
   opacity: 1;
   text-decoration: underline;
 }
 
+/* Comment text */
 .cs-comment-content {
   font-size: 14px;
   line-height: 1.65;
@@ -266,7 +289,7 @@
   word-break: break-word;
 }
 
-/* Actions */
+/* Action buttons container */
 .cs-comment-actions {
   display: flex;
   align-items: center;
@@ -274,6 +297,7 @@
   margin-top: 2px;
 }
 
+/* Action button */
 .cs-action-btn {
   background: none;
   border: none;
@@ -286,14 +310,17 @@
   font-family: inherit;
 }
 
+/* Action hover */
 .cs-action-btn:hover:not(:disabled) {
   color: var(--color-dark);
 }
 
+/* Replies toggle button */
 .cs-action-btn--replies {
   color: var(--color-teal);
 }
 
+/* Replies toggle hover */
 .cs-action-btn--replies:hover:not(:disabled) {
   color: var(--color-dark);
 }
@@ -309,7 +336,7 @@
   flex-direction: column;
 }
 
-/* Load more */
+/* Load more button */
 .cs-load-more {
   display: block;
   width: 100%;
@@ -327,15 +354,18 @@
   font-family: inherit;
 }
 
+/* Load more hover */
 .cs-load-more:hover:not(:disabled) {
   background: var(--color-lightest);
 }
 
+/* Load more disabled */
 .cs-load-more:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
+/* Load more replies variant */
 .cs-load-more--replies {
   width: auto;
   margin-top: 6px;
@@ -344,7 +374,7 @@
   border-radius: 6px;
 }
 
-/* Skeletons / states */
+/* Loading state container */
 .cs-state {
   display: flex;
   flex-direction: column;
@@ -352,6 +382,7 @@
   padding: 8px 0;
 }
 
+/* Skeleton loading bar */
 .cs-skeleton {
   height: 14px;
   border-radius: 7px;
@@ -360,19 +391,23 @@
   width: 100%;
 }
 
+/* Short skeleton */
 .cs-skeleton--short { width: 55%; }
 
+/* Skeleton animation */
 @keyframes csPulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.45; }
 }
 
+/* Empty state text */
 .cs-empty {
   font-size: 14px;
   color: var(--text-muted);
   padding: 16px 0 8px;
 }
 
+/* Error state text */
 .cs-error {
   font-size: 14px;
   color: #a53d2a;

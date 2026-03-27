@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import OverflowTooltip from "./OverflowTooltip";
 
+// Props for project card component
 interface ProjectsCardProps {
   id: string;
   title: string;
@@ -10,6 +11,7 @@ interface ProjectsCardProps {
   description: string;
 }
 
+// Displays project summary card
 export function ProjectsCard({ id, title, author, fields, description }: ProjectsCardProps) {
   return (
     <Link href={`/projectPage?id=${id}`} className="flex flex-col bg-white border border-gray-200 rounded-xl p-5 shadow-[0_0_10px_rgba(0,0,0,0.1)] w-full min-w-0 h-[260px] overflow-hidden font-['Montserrat'] cursor-pointer hover:shadow-[0_0_15px_rgba(0,0,0,0.15)] transition-shadow duration-200">
@@ -26,24 +28,24 @@ export function ProjectsCard({ id, title, author, fields, description }: Project
       {/* Horizontal Line Separator */}
       <hr className="border-border mb-3" />
 
-      {/* Card Details */}
+      {/* Card Details container */}
       <div className="flex flex-col gap-2 flex-grow overflow-hidden">
         
-        {/* Author, Designation */}
+        {/* Author name */}
         <OverflowTooltip
           text={author}
           className="text-sm font-semibold text-card-foreground"
           lines={1}
         />
 
-        {/* Project Fields */}
+        {/* Project fields/tags */}
         <OverflowTooltip 
           text={fields.join(", ")} 
           className="text-sm text-muted-foreground italic" 
           lines={1} 
         />
 
-        {/* Project Description */}
+        {/* Project description */}
         <OverflowTooltip 
           text={description} 
           className="text-sm text-muted-foreground italic mt-1" 
@@ -55,4 +57,4 @@ export function ProjectsCard({ id, title, author, fields, description }: Project
   );
 }
 
-export default ProjectsCard;  
+export default ProjectsCard;
