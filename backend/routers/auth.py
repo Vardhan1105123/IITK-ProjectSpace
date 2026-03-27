@@ -39,11 +39,13 @@ async def request_otp(request_data: UserBase, db: Session = Depends(get_session)
             detail="Full name is required to request registration OTP.",
         )
 
+    # Prevent users from registering an email that is already active
     if get_user_by_email(session=db, email=request_data.iitk_email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered."
         )
 
+    # Clean up any old, unverified OTP requests for this email to prevent spam
     existing_otp = db.exec(
         select(OTPVerification).where(OTPVerification.email == request_data.iitk_email)
     ).first()
@@ -63,6 +65,7 @@ async def request_otp(request_data: UserBase, db: Session = Depends(get_session)
     db.add(new_otp)
     db.commit()
 
+    # Dispatch the email asynchronously so the API responds instantly
     await send_otp_email(
         email_to=request_data.iitk_email,
         otp_code=otp_code,
@@ -93,6 +96,7 @@ def verify_otp(verify_data: OTPVerify, db: Session = Depends(get_session)):
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code."
         )
 
+    # Security check: Ensure the OTP hasn't expired
     if otp_record.expires_at < now():
         db.delete(otp_record)
         db.commit()
@@ -101,6 +105,7 @@ def verify_otp(verify_data: OTPVerify, db: Session = Depends(get_session)):
             detail="Verification code has expired. Please request a new one.",
         )
 
+    # OTP is valid. Create the permanent user account
     new_user_data = UserCreate(
         fullname=otp_record.full_name,
         iitk_email=otp_record.email,
@@ -117,6 +122,7 @@ def verify_otp(verify_data: OTPVerify, db: Session = Depends(get_session)):
 
 @router.post("/check-otp", status_code=status.HTTP_200_OK)
 def check_otp(check_data: OTPCheck, db: Session = Depends(get_session)):
+    """Utility endpoint to verify an OTP without consuming it (useful for multi-step frontend forms)."""
     otp_record = db.exec(
         select(OTPVerification)
         .where(OTPVerification.email == check_data.iitk_email)
@@ -169,6 +175,7 @@ def login_user(user_credentials: UserLogin, db: Session = Depends(get_session)):
 async def forgot_password(
     request_data: ForgotPasswordRequest, db: Session = Depends(get_session)
 ):
+    """Initiates the password reset flow by sending a 'reset' OTP."""
 
     db_user = get_user_by_email(session=db, email=request_data.iitk_email)
     if not db_user:

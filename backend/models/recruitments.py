@@ -7,8 +7,11 @@ from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy import String, Column, Computed, Index
 
 
-# The Recruiter Link Table. Connects multiple Users (recruiters) to multiple Recruitments
 class RecruitmentRecruiterLink(SQLModel, table=True):
+    """
+    Association table connecting multiple Users (recruiters) to multiple Recruitments.
+    Allows a team of people to manage the same recruitment post.
+    """
     recruitment_id: Optional[uuid.UUID] = Field(
         default=None, foreign_key="recruitment.id", primary_key=True
     )
@@ -18,12 +21,17 @@ class RecruitmentRecruiterLink(SQLModel, table=True):
 
 
 class RecruitmentPendingLink(SQLModel, table=True):
+    """Tracks users who have been invited to be recruiters but haven't accepted yet."""
     recruitment_id: uuid.UUID = Field(foreign_key="recruitment.id", primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="user.id", primary_key=True)
 
 
-# 2. The Application Table. It links a User and a Recruitment,
 class Application(SQLModel, table=True):
+    """
+    Links a User (applicant) to a Recruitment. 
+    Unlike a standard link table, this acts as a full table because we need 
+    to store extra data about the relationship (message, status, timestamp).
+    """
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
     applicant_id: uuid.UUID = Field(foreign_key="user.id", ondelete="CASCADE")
@@ -36,12 +44,13 @@ class Application(SQLModel, table=True):
 
     applied_at: datetime = Field(default_factory=now)
 
+    # Relationships to easily fetch the user or the recruitment details from an application
     applicant: "User" = Relationship(back_populates="applications")
     recruitment: "Recruitment" = Relationship(back_populates="applications")
 
 
-# 3. The Recruitment Base
 class RecruitmentBase(SQLModel):
+    """Shared fields for the recruitment schema and database model."""
     title: str = Field(index=True, max_length=100)
     description: str
     description_format: str = Field(default="markdown")
@@ -67,6 +76,8 @@ class Recruitment(RecruitmentBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
     creator_id: uuid.UUID = Field(foreign_key="user.id", ondelete="CASCADE")
+
+    # Loads the creator object whenever a recruitment post is queried
     creator: Optional["User"] = Relationship(
         sa_relationship_kwargs={
             "foreign_keys": "[Recruitment.creator_id]",
@@ -87,6 +98,8 @@ class Recruitment(RecruitmentBase, table=True):
 
     comments: List["Comment"] = Relationship(back_populates="recruitment")
 
+    # Computes a search vector from the title and description to power the 
+    # search functionality
     search_vector: Optional[str] = Field(
         default=None,
         sa_column=Column(
@@ -98,6 +111,7 @@ class Recruitment(RecruitmentBase, table=True):
         ),
     )
 
+    # GIN index for high-performance text searches
     __table_args__ = (
         Index("ix_recruitment_search_vector", "search_vector", postgresql_using="gin"),
     )

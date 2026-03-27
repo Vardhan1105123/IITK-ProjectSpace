@@ -7,6 +7,7 @@ from models.user import User
 from core.database import get_session
 from core.config import settings
 
+# 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
@@ -20,17 +21,21 @@ def get_current_user(
     )
 
     try:
+        # Checks the token's signature against our SECRET_KEY to ensure it was not forged.
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
 
-        email: str = payload.get("sub")
+        # The user's identifier is their email
+        email = payload.get("sub")
         if email is None:
             raise credentials_exception
 
+    # Error thrown if token is badly formatted, has a bad signature or is expired.
     except JWTError:
         raise credentials_exception
 
+    # Verify if user actually exists in the database
     user = session.exec(select(User).where(User.iitk_email == email)).first()
 
     if user is None:

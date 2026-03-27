@@ -29,7 +29,10 @@ def create_notification(
     session.refresh(notification)
     return notification
 
-
+'''
+Fetches a user's notification with pagination (limit/offset) to prevent loading thousands of rows at once.
+Also calculates total and unread counts so that frontend can display badges.
+'''
 def get_user_notifications(
     session: Session, user_id: uuid.UUID, limit: int = 20, offset: int = 0
 ) -> Tuple[List[Notification], int, int]:

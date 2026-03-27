@@ -21,6 +21,7 @@ from typing import Sequence
 def create_recruitment(
     session: Session, recruitment_create: RecruitmentCreate, creator_id: uuid.UUID
 ) -> Recruitment:
+    """Creates a new recruitment post and populates the Many-to-Many recruiter links."""
     db_recruitment = Recruitment(
         title=recruitment_create.title,
         description=recruitment_create.description,
@@ -76,6 +77,10 @@ def get_recruitment_by_id(
             selectinload(Recruitment.applications).selectinload(Application.applicant),
         )
     )
+    """
+    Fetches a single recruitment post. Uses `selectinload` to eager-load 
+    nested relationships (comments, recruiters, applications) in a single database hit.
+    """
     recruitment = session.exec(statement).first()
     if recruitment and recruitment.creator is None:
         recruitment.creator = session.get(User, recruitment.creator_id)
@@ -151,7 +156,7 @@ def delete_recruitment(session: Session, db_recruitment: Recruitment) -> None:
 def create_application(
     session: Session, app_create: ApplicationCreate, applicant_id: uuid.UUID
 ) -> Application:
-    # Prevent duplicate applications from the same user to the same recruitment
+    """Creates a new application while explicitly preventing spam/duplicate submissions."""
     existing = session.exec(
         select(Application)
         .where(Application.recruitment_id == app_create.recruitment_id)

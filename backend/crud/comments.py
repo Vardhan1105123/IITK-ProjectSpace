@@ -27,6 +27,8 @@ def _get_depth(session: Session, comment_id: uuid.UUID) -> int:
 def create_comment(
     session: Session, comment_create: CommentCreate, author_id: uuid.UUID
 ) -> Comment:
+    
+    # Some validity checks for the comment
     if not comment_create.project_id and not comment_create.recruitment_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -8,6 +8,11 @@ from sqlalchemy import String, Column, Computed, Index
 
 
 class ProjectTeamLink(SQLModel, table=True):
+    """
+    Association table linking Users to Projects as official team members.
+    A project can have many members, and a user can be in many projects.
+    """
+
     project_id: Optional[uuid.UUID] = Field(
         default=None, foreign_key="project.id", primary_key=True
     )
@@ -28,6 +33,10 @@ class ProjectBase(SQLModel):
     description_format: str = Field(
         default="markdown", description="Either 'plain-text' or 'markdown'"
     )
+    """
+    Core project fields. This class is inherited by the actual Project model 
+    and can be reused for Pydantic validation schemas (like ProjectCreate).
+    """
 
     domains: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(String)))
     links: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(String)))
@@ -35,12 +44,21 @@ class ProjectBase(SQLModel):
 
 
 class Project(ProjectBase, table=True):
+    """
+    The actual 'project' table in the database. 
+    It combines the base fields with IDs, timestamps, and relationship definitions.
+    """
+
+    # ondelete="CASCADE" ensures that if the creator's account is deleted, 
+    # all of their projects are deleted with it to prevent orphaned data.
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     creator_id: uuid.UUID = Field(foreign_key="user.id", ondelete="CASCADE")
 
     created_at: datetime = Field(default_factory=now)
     updated_at: datetime = Field(default_factory=now)
 
+    # 'lazy="joined"' tells SQLAlchemy to automatically fetch the creator's info 
+    # whenever a project is queried.
     creator: Optional["User"] = Relationship(
         sa_relationship_kwargs={
             "foreign_keys": "[Project.creator_id]",
@@ -48,6 +66,7 @@ class Project(ProjectBase, table=True):
         }
     )
 
+    # Uses the link_model to automatically manage the Many-to-Many team list
     team_members: List["User"] = Relationship(
         back_populates="projects", link_model=ProjectTeamLink
     )

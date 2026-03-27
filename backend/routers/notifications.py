@@ -24,6 +24,7 @@ def read_notifications(
     db: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
+    """Fetches notifications and enriches them with the sender's name and avatar."""
     results, total, unread_count = get_user_notifications(
         session=db, user_id=current_user.id, limit=limit, offset=offset
     )
@@ -89,6 +90,7 @@ def delete_single_notification(
     db: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
+    """Permanently removes a notification from the user's tray."""
     deleted = delete_notification(
         session=db, notification_id=notification_id, user_id=current_user.id
     )
@@ -104,5 +106,6 @@ def mark_all_notifications_read(
     db: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
+    """Utility endpoint to clear the unread badge counter in one click."""
     mark_all_read(session=db, user_id=current_user.id)
     return {"message": "All unread notifications marked as read"}

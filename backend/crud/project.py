@@ -13,6 +13,7 @@ from typing import Sequence
 def create_project(
     session: Session, project_create: ProjectCreate, creator_id: uuid.UUID
 ) -> Project:
+    """Creates a project and links the initial team members."""
     db_project = Project(
         title=project_create.title,
         summary=project_create.summary,
@@ -74,6 +75,11 @@ def get_all_projects(
             selectinload(Project.comments).selectinload(Comment.author),
         )
     )
+    """
+    Fetches a paginated list of all projects. 
+    Uses selectinload to eagerly fetch the creator and comments to optimize database hits.
+    """
+
     projects = session.exec(statement).all()
     for project in projects:
         for comment in project.comments:
@@ -117,6 +123,7 @@ def delete_project(session: Session, db_project: Project) -> None:
 def add_user_to_project_team(
     session: Session, project_id: uuid.UUID, user_id: uuid.UUID
 ):
+    """Helper function to cleanly handle Many-to-Many link table insertions."""
     team_link = ProjectTeamLink(project_id=project_id, user_id=user_id)
     session.add(team_link)
     session.commit()
