@@ -7,6 +7,7 @@ import "./ProfilePage.css";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { fetchMyProfile, fetchMyProjects, fetchMyRecruitments, UserProfile, UserProfileView, getUserById, getUserProjects, getUserRecruitments } from "@/lib/profileApi";
+import { skillColor } from "@/lib/skillColor";
 import { ProjectPublic } from "@/lib/projectApi";
 import { RecruitmentPublic } from "@/lib/recruitmentApi";
 import ProjectCard from "../components/cards/ProjectsCard";
@@ -52,7 +53,6 @@ const ProjectIcon = () => (
 
 /* Helpers */
 type TabType = "recruitment" | "project";
-const TAG_COLORS = ["teal", "blue", "red"] as const;
 
 const getErrorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error && error.message ? error.message : fallback;
@@ -68,6 +68,7 @@ const ProfilePageContent: React.FC = () => {
   const [cardsLoading, setCardsLoading] = useState(false);
   const [error, setError]         = useState<string | null>(null);
   const [cardsError, setCardsError] = useState<string | null>(null);
+  const [myId, setMyId]           = useState<string | null>(null);
 
   const [recruitmentsInitialized, setRecruitmentsInitialized] = useState(false);
   const [projectsInitialized, setProjectsInitialized]         = useState(false);
@@ -80,11 +81,13 @@ const ProfilePageContent: React.FC = () => {
   const loadProfile = async () => {
     try {
       if (userId) {
-        const data = await getUserById(userId);
+        const [data, me] = await Promise.all([getUserById(userId), fetchMyProfile()]);
         setProfile(data);
+        setMyId(me.id);
       } else {
         const data = await fetchMyProfile();
         setProfile(data);
+        setMyId(data.id);
       }
     } catch (error: unknown) {
       if (getErrorMessage(error, "") === "Unauthorized") {
@@ -100,7 +103,7 @@ const ProfilePageContent: React.FC = () => {
   loadProfile();
 }, [userId]);
 
-const isOwnProfile = !userId
+const isOwnProfile = !userId || userId === myId
 
   // Loads each tab only on it's visit
   useEffect(() => {
@@ -233,8 +236,8 @@ const isOwnProfile = !userId
               <div className="skills-bio">
                 <div className="skills-bio__skills-row">
                   <span className="skills-bio__label">SKILLS</span>
-                  {profile.skills?.map((skill, i) => (
-                    <span key={skill} className={`skills-bio__tag skills-bio__tag--${TAG_COLORS[i % TAG_COLORS.length]}`}>
+                  {profile.skills?.map((skill) => (
+                    <span key={skill} className="skills-bio__tag" style={{ backgroundColor: skillColor(skill) }}>
                       {skill}
                     </span>
                   ))}

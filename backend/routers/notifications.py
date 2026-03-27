@@ -11,6 +11,7 @@ from crud.notification import (
     get_user_notifications,
     mark_notification_read,
     mark_all_read,
+    delete_notification,
 )
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
@@ -80,6 +81,22 @@ def mark_single_notification_read(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found"
         )
     return {"message": "Notification marked as read"}
+
+
+@router.delete("/{notification_id}")
+def delete_single_notification(
+    notification_id: uuid.UUID,
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    deleted = delete_notification(
+        session=db, notification_id=notification_id, user_id=current_user.id
+    )
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found"
+        )
+    return {"message": "Notification deleted"}
 
 
 @router.patch("/read-all")

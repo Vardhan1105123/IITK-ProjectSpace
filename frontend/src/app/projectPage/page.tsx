@@ -5,6 +5,7 @@ import "./projectPage.css";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   acceptProjectInvite,
   getProject,
@@ -13,6 +14,7 @@ import {
   UserSummary,
 } from "@/lib/projectApi";
 import { fetchMyProfile } from "@/lib/profileApi";
+import { skillColor } from "@/lib/skillColor";
 import { getRepresentativeString } from "@/lib/formatTeam";
 import ReactMarkdown from "react-markdown";
 import CommentsSection from "../components/commentsSection";
@@ -105,7 +107,7 @@ const CreatorAvatar: React.FC<{ name: string; avatarUrl?: string }> = ({ name, a
 
 /* Team Member Chip */
 const TeamChip: React.FC<{ member: UserSummary; colorIndex: number }> = ({ member, colorIndex }) => (
-  <div className="project-team-chip">
+  <Link href={`/profilePage?id=${member.id}`} className="project-team-chip">
     <div className={`project-team-avatar c${(colorIndex % 5) + 1}`}>
       {member.profile_picture_url
         ? <img src={member.profile_picture_url} alt={member.fullname} />
@@ -113,7 +115,7 @@ const TeamChip: React.FC<{ member: UserSummary; colorIndex: number }> = ({ membe
       }
     </div>
     <span>{member.fullname}</span>
-  </div>
+  </Link>
 );
 
 /* Description */
@@ -282,10 +284,13 @@ const ProjectPageContent: React.FC = () => {
               {/* Creator row */}
               <div className="project-creator-row">
                 <div className="project-creator-info">
-                  <CreatorAvatar 
-                    name={representative?.fullname || "Unknown"}
-                    avatarUrl={representative?.profile_picture_url}
-                  />
+                  <div className="project-avatar-stack">
+                    {(project.team_members || []).slice(0, 4).map((m, i) => (
+                      <Link key={m.id} href={`/profilePage?id=${m.id}`} className={`project-avatar-stack-item c${(i % 5) + 1}`} title={m.fullname}>
+                        {m.profile_picture_url ? <img src={m.profile_picture_url} alt={m.fullname} /> : getInitials(m.fullname)}
+                      </Link>
+                    ))}
+                  </div>
                   <div className="project-creator-name">{displayText}</div>
                 </div>
               </div>
@@ -327,7 +332,7 @@ const ProjectPageContent: React.FC = () => {
               {project.domains.length > 0 && (
                 <div className="project-tags">
                   {project.domains.map((tag) => (
-                    <span key={tag} className="project-tag">{tag}</span>
+                    <span key={tag} className="project-tag" style={{ backgroundColor: skillColor(tag) }}>{tag}</span>
                   ))}
                 </div>
               )}

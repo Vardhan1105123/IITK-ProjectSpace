@@ -50,6 +50,52 @@
 }
 
 /* Creator Row */
+.project-avatar-stack {
+  display: flex;
+  align-items: center;
+}
+
+.project-avatar-stack-item {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-card);
+  margin-left: -8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  text-decoration: none;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.project-avatar-stack-item:first-child { margin-left: 0; }
+
+.project-avatar-stack-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-mid);
+  z-index: 1;
+}
+
+.project-avatar-stack-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.project-avatar-stack-item.c1 { background: linear-gradient(135deg, var(--color-dark), var(--color-darkest)); }
+.project-avatar-stack-item.c2 { background: linear-gradient(135deg, var(--color-mid), var(--color-dark)); }
+.project-avatar-stack-item.c3 { background: linear-gradient(135deg, var(--color-teal), var(--color-mid)); }
+.project-avatar-stack-item.c4 { background: linear-gradient(135deg, var(--color-slate), var(--color-teal)); }
+.project-avatar-stack-item.c5 { background: linear-gradient(135deg, var(--color-sky), var(--color-slate)); }
+
 .project-creator-row {
   display: flex;
   align-items: center;
@@ -184,9 +230,6 @@
   color: #fff;
 }
 
-.project-tag:nth-child(3n+1) { background-color: #2d8a6e; }          /* teal */
-.project-tag:nth-child(3n+2) { background-color: var(--color-teal); } /* blue */
-.project-tag:nth-child(3n+3) { background-color: #a53d2a; }           /* red  */
 
 /* Section Headings */
 .project-section-heading {
@@ -325,6 +368,14 @@
   font-size: 15px;
   font-weight: 500;
   color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.project-team-chip:hover {
+  background: var(--color-sky);
+  border-color: var(--color-mid);
 }
 
 .project-team-avatar {

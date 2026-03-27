@@ -7,6 +7,7 @@ import {
   getNotifications,
   markAllNotificationsRead,
   markNotificationRead,
+  deleteNotification,
 } from "@/lib/notificationApi";
 import {
   acceptProjectInvite,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/recruitmentApi";
 import { fetchMyProfile } from "@/lib/profileApi";
 import "./NotificationDrawer.css";
+import ConfirmPopUp from "./confirmPopUp";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const LIST_PAGE_SIZE = 25;
@@ -215,6 +217,7 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
   const [unreadCount, setUnreadCount] = useState(0);
   const [inviteActionLoading, setInviteActionLoading] = useState<"accept" | "reject" | null>(null);
   const [inviteActionError, setInviteActionError] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [handledInvites, setHandledInvites] = useState<
     Record<string, "accepted" | "rejected" | "resolved">
   >({});
@@ -381,6 +384,26 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
   const onSelect = (notification: NotificationRead) => {
     setSelectedId(notification.id);
     void markSelectedRead(notification);
+  };
+
+  const requestDelete = (e: React.MouseEvent, notificationId: string) => {
+    e.stopPropagation();
+    setConfirmDeleteId(notificationId);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
+    const previous = notifications;
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    syncUnread(previous.filter((n) => !n.is_read && n.id !== id).length);
+    try {
+      await deleteNotification(id);
+    } catch {
+      setNotifications(previous);
+      syncUnread(previous.filter((n) => !n.is_read).length);
+    }
   };
 
   const onMarkAllRead = async () => {
@@ -618,10 +641,13 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
             notifications.map((notification) => {
               const isActive = selectedId === notification.id;
               return (
-                <button
+                <div
                   key={notification.id}
                   className={`notif-item${isActive ? " notif-item--active" : ""}${notification.is_read ? "" : " notif-item--unread"}`}
                   onClick={() => onSelect(notification)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && onSelect(notification)}
                 >
                   <div className="notif-item__icon">
                     <NotificationIcon type={notification.type} />
@@ -634,11 +660,32 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                     </div>
                     <p>{notification.message}</p>
                   </div>
-                </button>
+
+                  <button
+                    className="notif-item__delete-btn"
+                    onClick={(e) => requestDelete(e, notification.id)}
+                    aria-label="Delete notification"
+                    title="Delete"
+                  >
+                    ×
+                  </button>
+                </div>
               );
             })}
         </div>
       </aside>
+
+      {confirmDeleteId && (
+        <ConfirmPopUp
+          heading="Delete Notification"
+          message="Are you sure you want to delete this notification? This cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          isDestructive={true}
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
+      )}
     </div>
   );
 };

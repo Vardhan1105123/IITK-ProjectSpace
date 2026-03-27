@@ -204,6 +204,31 @@
   overflow: hidden;
 }
 
+.notif-item__delete-btn {
+  flex-shrink: 0;
+  align-self: center;
+  margin-left: auto;
+  padding: 2px 6px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  font-size: 18px;
+  line-height: 1;
+  color: #8fa7bc;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.notif-item:hover .notif-item__delete-btn {
+  opacity: 1;
+}
+
+.notif-item__delete-btn:hover {
+  color: #c1121f;
+  background: rgba(193, 18, 31, 0.08);
+}
+
 .notif-item--unread .notif-item__title-row strong {
   color: #021a31;
 }

@@ -1,8 +1,21 @@
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from typing import Optional, List
 import uuid
+import re
 from datetime import datetime
 from core.utils import Degree, Department, Designation
+
+
+def validate_password_strength(v: str) -> str:
+    if not re.search(r"[A-Z]", v):
+        raise ValueError("Password must contain at least one uppercase letter.")
+    if not re.search(r"[a-z]", v):
+        raise ValueError("Password must contain at least one lowercase letter.")
+    if not re.search(r"\d", v):
+        raise ValueError("Password must contain at least one number.")
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>_\-+=\[\]\\;'/`~]", v):
+        raise ValueError("Password must contain at least one special character.")
+    return v
 
 # Base User Model (Editable and Shared fields only)
 
@@ -25,6 +38,11 @@ class OTPVerify(BaseModel):
     iitk_email: EmailStr
     otp_code: str
     password: str = Field(min_length=8, max_length=20)
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 
 class OTPCheck(BaseModel):
@@ -50,7 +68,12 @@ class ForgotPasswordRequest(BaseModel):
 class ForgotPasswordVerify(BaseModel):
     iitk_email: EmailStr
     otp_code: str
-    new_password: str = Field(min_length=8, max_length=40)
+    new_password: str = Field(min_length=8, max_length=20)
+
+    @field_validator("new_password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 
 # Registeration
@@ -58,6 +81,11 @@ class ForgotPasswordVerify(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=20)
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 
 # Login

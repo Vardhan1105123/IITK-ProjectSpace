@@ -78,6 +78,18 @@ export async function markNotificationRead(notificationId: string): Promise<void
   }
 }
 
+export async function deleteNotification(notificationId: string): Promise<void> {
+  const res = await fetch(`${API}/${notificationId}`, {
+    method: "DELETE",
+    headers: { ...authHeaders() },
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(extractError(data, "Failed to delete notification"));
+  }
+}
+
 export async function markAllNotificationsRead(): Promise<void> {
   const res = await fetch(`${API}/read-all`, {
     method: "PATCH",

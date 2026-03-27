@@ -160,17 +160,6 @@
   color: #fff;
 }
 
-.skills-bio__tag--teal { 
-  background-color: #2d8a6e; 
-}
-
-.skills-bio__tag--blue { 
-  background-color: var(--color-teal); 
-}
-
-.skills-bio__tag--red { 
-  background-color: #a53d2a; 
-}
 
 .skills-bio__bio {
   margin: 0;

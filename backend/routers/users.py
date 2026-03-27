@@ -98,6 +98,26 @@ def upload_profile_picture(
     return current_user
 
 
+@router.delete("/me/profile-picture", response_model=UserPublic)
+def remove_profile_picture(
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Removes the current user's profile picture."""
+    # Delete the physical file if it exists on disk
+    if current_user.profile_picture_url:
+        backend_root = pathlib.Path(__file__).resolve().parent.parent
+        file_path = backend_root / current_user.profile_picture_url.lstrip("/")
+        if file_path.exists():
+            file_path.unlink(missing_ok=True)
+
+    current_user.profile_picture_url = None
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 # Get current user's projects
 @router.get("/me/projects", response_model=List[ProjectPublic])
 def get_my_projects(

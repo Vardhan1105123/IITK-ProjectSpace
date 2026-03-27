@@ -240,6 +240,14 @@ button:disabled {
   box-shadow: 0 5px 10px rgba(0, 29, 57, 0.3);
 }
 
+.password-hint {
+  width: 90%;
+  margin: -4px auto 12px auto;
+  font-size: clamp(0.65rem, 2vw, 0.75rem);
+  color: #888;
+  line-height: 1.4;
+}
+
 .link {
   font-size: clamp(0.7rem, 3vw, 0.8rem);
   text-align: center;

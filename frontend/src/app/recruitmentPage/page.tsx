@@ -18,6 +18,7 @@ import {
 } from "@/lib/recruitmentApi";
 import { fetchMyProfile } from "@/lib/profileApi";
 import { getRepresentativeString } from "@/lib/formatTeam";
+import { skillColor } from "@/lib/skillColor";
 import ReactMarkdown from "react-markdown";
 import CommentsSection from "../components/commentsSection";
 
@@ -367,9 +368,9 @@ const RecruitmentPageContent: React.FC = () => {
                 <div className="recruit-recruiters-inline">
                   <div className="recruit-avatar-stack">
                     {recruitment.recruiters.slice(0, 4).map((r, i) => (
-                      <div key={r.id} className={`recruit-avatar-stack-item c${(i % 5) + 1}`} title={r.fullname}>
+                      <Link key={r.id} href={`/profilePage?id=${r.id}`} className={`recruit-avatar-stack-item c${(i % 5) + 1}`} title={r.fullname}>
                         {r.profile_picture_url ? <img src={r.profile_picture_url} alt={r.fullname} /> : getInitials(r.fullname)}
-                      </div>
+                      </Link>
                     ))}
                   </div>
                   <span className="recruit-recruiters-label">
@@ -461,7 +462,7 @@ const RecruitmentPageContent: React.FC = () => {
               {recruitment.domains.length > 0 && (
                 <div className="recruit-tags">
                   {recruitment.domains.map((tag) => (
-                    <span key={tag} className="recruit-tag">{tag}</span>
+                    <span key={tag} className="recruit-tag" style={{ backgroundColor: skillColor(tag) }}>{tag}</span>
                   ))}
                 </div>
               )}
@@ -478,7 +479,7 @@ const RecruitmentPageContent: React.FC = () => {
                     <div className="recruit-section-heading">Prerequisites</div>
                     <div className="recruit-prereq-tags">
                       {recruitment.prerequisites.map((p) => (
-                        <span key={p} className="recruit-prereq-tag">{p}</span>
+                        <span key={p} className="recruit-prereq-tag" style={{ backgroundColor: skillColor(p) }}>{p}</span>
                       ))}
                     </div>
                   </div>
@@ -525,12 +526,12 @@ const RecruitmentPageContent: React.FC = () => {
                     <div className="recruit-section-heading">Recruiters</div>
                     <div className="recruit-recruiter-list">
                       {recruitment.recruiters.map((r, i) => (
-                        <div key={r.id} className="recruit-recruiter-chip">
+                        <Link key={r.id} href={`/profilePage?id=${r.id}`} className="recruit-recruiter-chip">
                           <div className={`recruit-recruiter-avatar c${(i % 5) + 1}`}>
                             {r.profile_picture_url ? <img src={r.profile_picture_url} alt={r.fullname} /> : getInitials(r.fullname)}
                           </div>
                           <span>{r.fullname}</span>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   </div>

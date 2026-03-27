@@ -69,6 +69,7 @@ const LoginPage = () => {
         router.replace("/profilePage");
       }
     } catch {
+      setPassword("");
       triggerAlert("Invalid email or password", "error");
     } finally {
       setIsLoading(false);
@@ -137,8 +138,9 @@ const LoginPage = () => {
       triggerAlert("Account created successfully!", "success");
       router.replace("/profilePage");
       setPassword(""); setConfirmPassword("");
-    } catch {
-      triggerAlert("Registration failed", "error");
+    } catch (error: unknown) {
+      setPassword(""); setConfirmPassword("");
+      triggerAlert(getErrorMessage(error, "Registration failed"), "error");
     } finally {
       setIsLoading(false);
     }
@@ -155,8 +157,9 @@ const LoginPage = () => {
       triggerAlert("Password updated successfully!", "success");
       handleModeSwitch("login");
       setPassword(""); setConfirmPassword("");
-    } catch {
-      triggerAlert("Failed to update password.", "error");
+    } catch (error: unknown) {
+      setPassword(""); setConfirmPassword("");
+      triggerAlert(getErrorMessage(error, "Failed to update password."), "error");
     } finally {
       setIsLoading(false);
     }
@@ -221,6 +224,7 @@ const LoginPage = () => {
 
             <label>New Password</label>
             <input type="password" placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <p className="password-hint">Min. 8 characters with at least one uppercase, one lowercase, one number &amp; one special character.</p>
 
             <label>Confirm Password</label>
             <input  type="password" placeholder="Confirm your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}/>
@@ -255,6 +259,7 @@ const LoginPage = () => {
             
             <label>New Password</label>
             <input type="password" placeholder="Enter new password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <p className="password-hint">Min. 8 characters with at least one uppercase, one lowercase, one number &amp; one special character.</p>
 
             <label>Confirm Password</label>
             <input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />

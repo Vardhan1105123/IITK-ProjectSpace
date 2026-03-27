@@ -142,6 +142,17 @@ export async function uploadMyProfilePicture(file: File): Promise<UserProfile> {
   return mapUserProfile(data as UserProfile);
 }
 
+export async function removeMyProfilePicture(): Promise<void> {
+  const res = await fetch(`${API}/users/me/profile-picture`, {
+    method: "DELETE",
+    headers: { ...authHeaders() },
+  });
+
+  if (res.status === 401) throw new Error("Unauthorized");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(extractError(data, "Failed to remove profile picture"));
+}
+
 // Fetch another user's public profile by their ID
 export async function getUserById(userId: string): Promise<UserProfileView> {
   const res = await fetch(`${API}/users/${userId}`, {

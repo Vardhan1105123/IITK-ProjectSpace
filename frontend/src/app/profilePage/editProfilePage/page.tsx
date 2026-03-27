@@ -8,6 +8,7 @@ import {
   fetchMyProfile,
   updateMyProfile,
   uploadMyProfilePicture,
+  removeMyProfilePicture,
   UserProfile,
 } from "@/lib/profileApi";
 import CreatableSelect from "react-select/creatable";
@@ -95,6 +96,7 @@ const EditProfilePage: React.FC = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [form, setForm] = useState<EditFormState | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -121,8 +123,16 @@ const EditProfilePage: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     setAvatarFile(file);
+    setRemovePhoto(false);
     const url = URL.createObjectURL(file);
     setForm((prev) => prev ? { ...prev, avatarPreview: url } : prev);
+  };
+
+  const handleRemovePhoto = () => {
+    setAvatarFile(null);
+    setRemovePhoto(true);
+    setForm((prev) => prev ? { ...prev, avatarPreview: null, profile_picture_url: "" } : prev);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const formatUrl = (url: string | undefined): string | null => {
@@ -156,6 +166,8 @@ const EditProfilePage: React.FC = () => {
 
       if (avatarFile) {
         await uploadMyProfilePicture(avatarFile);
+      } else if (removePhoto) {
+        await removeMyProfilePicture();
       }
 
       router.push("/profilePage");
@@ -271,6 +283,15 @@ const EditProfilePage: React.FC = () => {
                     onChange={handleAvatarChange}
                   />
                   <p className="edit-profile-page__avatar-hint">Click the camera icon to change your photo</p>
+                  {(form.profile_picture_url || form.avatarPreview) && !removePhoto && (
+                    <button
+                      type="button"
+                      className="edit-profile-page__remove-photo-btn"
+                      onClick={handleRemovePhoto}
+                    >
+                      Remove photo
+                    </button>
+                  )}
                 </div>
 
                 {/* Form fields */}
