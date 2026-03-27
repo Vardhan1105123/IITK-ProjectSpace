@@ -7,7 +7,8 @@ from sqlmodel import Session
 
 from core.config import settings
 from core.database import engine
-import utils
+from core import utils
+
 
 # Set up the bcrypt hashing algorithm for password
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
