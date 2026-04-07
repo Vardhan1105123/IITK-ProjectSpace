@@ -147,6 +147,11 @@ const EditProfilePage: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!profile || !form) return;
+    
+    if (!form.designation.trim()) return setSaveError("Please select a designation.");
+    if (!form.degree.trim()) return setSaveError("Please select a degree.");
+    if (!form.department.trim()) return setSaveError("Please select a department.");
+
     setSaving(true);
     setSaveError(null);
     try {
