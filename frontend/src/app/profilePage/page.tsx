@@ -289,7 +289,6 @@ const isOwnProfile = !userId || userId === myId
                         id={r.id}
                         title={r.title}
                         recruiter={profile.fullname ?? ""}
-                        designation={profile.designation ?? ""}
                         fields={r.domains}
                         prerequisites={r.prerequisites}
                       />
@@ -306,7 +305,6 @@ const isOwnProfile = !userId || userId === myId
                         id={p.id}
                         title={p.title}
                         author={profile.fullname ?? ""}
-                        designation={profile.designation ?? ""}
                         fields={p.domains}
                         description={p.summary}
                       />

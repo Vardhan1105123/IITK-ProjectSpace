@@ -75,7 +75,7 @@ function timeAgo(isoDate: string): string {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-const getFullUrl = (url?: string) => url ? (url.startsWith("http") ? url : `${API_BASE_URL}${url}`) : undefined;
+const getFullUrl = (url?: string | null) => url ? (url.startsWith("http") ? url : `${API_BASE_URL}${url}`) : undefined;
 
 function getFirstImageUrl(urls?: string[]): string[] {
   if (!urls) return [];
