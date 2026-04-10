@@ -44,6 +44,13 @@ class Application(SQLModel, table=True):
 
     applied_at: datetime = Field(default_factory=now)
 
+    __table_args__ = (
+        Index("ix_application_recruitment_id", "recruitment_id"),
+        Index("ix_application_applicant_id", "applicant_id"),
+        Index("ix_application_recruitment_applicant", "recruitment_id", "applicant_id"),
+        Index("ix_application_recruitment_applied_at", "recruitment_id", "applied_at"),
+    )
+
     # Relationships to easily fetch the user or the recruitment details from an application
     applicant: "User" = Relationship(back_populates="applications")
     recruitment: "Recruitment" = Relationship(back_populates="applications")
@@ -114,4 +121,16 @@ class Recruitment(RecruitmentBase, table=True):
     # GIN index for high-performance text searches
     __table_args__ = (
         Index("ix_recruitment_search_vector", "search_vector", postgresql_using="gin"),
+        Index("ix_recruitment_domains_gin", "domains", postgresql_using="gin"),
+        Index("ix_recruitment_prerequisites_gin", "prerequisites", postgresql_using="gin"),
+        Index(
+            "ix_recruitment_allowed_designations_gin",
+            "allowed_designations",
+            postgresql_using="gin",
+        ),
+        Index(
+            "ix_recruitment_allowed_departments_gin",
+            "allowed_departments",
+            postgresql_using="gin",
+        ),
     )

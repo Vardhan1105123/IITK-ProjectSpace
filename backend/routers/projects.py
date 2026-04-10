@@ -67,7 +67,9 @@ def create_new_project(
     project_in.team_member_ids = []
 
     project = create_project(
-        session=db, project_create=project_in, creator_id=current_user.id
+        session=db,
+        project_create=project_in,
+        creator_id=current_user.id,
     )
 
     if member_ids:
@@ -94,7 +96,7 @@ def create_new_project(
 
 
 @router.get("/", response_model=List[ProjectSummary])
-def read_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_session)):
+def read_projects(skip: int = 0, limit: int = 20, db: Session = Depends(get_session)):
     return get_all_projects(session=db, skip=skip, limit=limit)
 
 
@@ -132,7 +134,11 @@ def update_existing_project(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only team members can edit this project.",
         )
-    return update_project(session=db, db_project=project, project_update=project_update)
+    updated_project = update_project(
+        session=db, db_project=project, project_update=project_update
+    )
+    db.commit()
+    return updated_project
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -152,6 +158,7 @@ def delete_existing_project(
             detail="Only team members can delete this project.",
         )
     delete_project(session=db, db_project=project)
+    db.commit()
 
 
 # --- Team member management ---
@@ -206,9 +213,6 @@ def invite_project_member(
         )
 
     db.add(ProjectPendingLink(project_id=project_id, user_id=user_id))
-    db.commit()
-    db.refresh(project)
-    project.creator = db.get(User, project.creator_id)
 
     create_notification(
         session=db,
@@ -220,6 +224,10 @@ def invite_project_member(
         sender_id=current_user.id,
         related_entity_id=project_id,
     )
+
+    db.commit()
+    db.refresh(project)
+    project.creator = db.get(User, project.creator_id)
 
     return project
 
@@ -250,9 +258,6 @@ def accept_project_invite(
 
     db.delete(pending_link)
     db.add(ProjectTeamLink(project_id=project_uuid, user_id=current_user.id))
-    db.commit()
-    db.refresh(project)
-    project.creator = db.get(User, project.creator_id)
 
     create_notification(
         session=db,
@@ -264,6 +269,10 @@ def accept_project_invite(
         sender_id=current_user.id,
         related_entity_id=project_uuid,
     )
+
+    db.commit()
+    db.refresh(project)
+    project.creator = db.get(User, project.creator_id)
 
     return project
 
@@ -293,9 +302,6 @@ def reject_project_invite(
         )
 
     db.delete(pending_link)
-    db.commit()
-    db.refresh(project)
-    project.creator = db.get(User, project.creator_id)
 
     create_notification(
         session=db,
@@ -307,6 +313,10 @@ def reject_project_invite(
         sender_id=current_user.id,
         related_entity_id=project_uuid,
     )
+
+    db.commit()
+    db.refresh(project)
+    project.creator = db.get(User, project.creator_id)
 
     return project
 
@@ -352,11 +362,6 @@ def remove_project_member(
         )
 
     db.delete(link)
-    db.commit()
-    db.refresh(project)
-
-    # Satisfy Pydantic schema fallback
-    project.creator = db.get(User, project.creator_id)
 
     # FIX 2: Handle both notification scenarios
     if current_user.id == user_id:
@@ -383,6 +388,10 @@ def remove_project_member(
             sender_id=current_user.id,
             related_entity_id=project_id,
         )
+
+    db.commit()
+    db.refresh(project)
+    project.creator = db.get(User, project.creator_id)
 
     return project
 

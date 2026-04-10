@@ -27,7 +27,11 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 def get_session():
     with Session(engine) as session:
-        yield session
+        try:
+            yield session
+        except Exception:
+            session.rollback()
+            raise
 
 
 # Requesting OTP Endpoint

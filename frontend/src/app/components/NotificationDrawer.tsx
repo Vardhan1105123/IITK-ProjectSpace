@@ -286,10 +286,6 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
   }, [router, syncUnread]);
 
   useEffect(() => {
-    void loadNotifications();
-  }, [loadNotifications]);
-
-  useEffect(() => {
     if (!open) return;
     setSelectedId(null);
     void loadNotifications();

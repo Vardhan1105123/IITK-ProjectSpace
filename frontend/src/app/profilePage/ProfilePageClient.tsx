@@ -8,8 +8,8 @@ import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { fetchMyProfile, fetchMyProjects, fetchMyRecruitments, UserProfile, UserProfileView, getUserById, getUserProjects, getUserRecruitments } from "@/lib/profileApi";
 import { skillColor } from "@/lib/skillColor";
-import { ProjectPublic } from "@/lib/projectApi";
-import { RecruitmentPublic } from "@/lib/recruitmentApi";
+import { ProjectSummary } from "@/lib/projectApi";
+import { RecruitmentSummary } from "@/lib/recruitmentApi";
 import ProjectCard from "../components/cards/ProjectsCard";
 import RecruitmentCard from "../components/cards/RecruitmentCard";
 
@@ -60,8 +60,8 @@ const getErrorMessage = (error: unknown, fallback: string): string =>
 const ProfilePageContent: React.FC = () => {
   const [activeTab, setActiveTab]   = useState<TabType>("recruitment");
   const [profile, setProfile]       = useState<UserProfile | UserProfileView | null>(null);
-  const [projects, setProjects]     = useState<ProjectPublic[]>([]);
-  const [recruitments, setRecruitments] = useState<RecruitmentPublic[]>([]);
+  const [projects, setProjects]     = useState<ProjectSummary[]>([]);
+  const [recruitments, setRecruitments] = useState<RecruitmentSummary[]>([]);
 
   const [loading, setLoading]     = useState(true);
   const [cardsLoading, setCardsLoading] = useState(false);
@@ -324,4 +324,3 @@ const ProfilePage: React.FC = () => (
 );
 
 export default ProfilePage;
-

@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlmodel import Session
-from typing import List
+from sqlmodel import Session, select
+from typing import List, Mapping
 import uuid
 
 from core.database import get_session
 from core.dependencies import get_current_user
 from models.user import User
 from models.comments import Comment
+from models.project import Project
+from models.recruitments import Recruitment
 from schemas.comments import CommentCreate, CommentPublic, CommentRepliesPage
 from crud import comments as comment_crud
 from crud import project as project_crud
@@ -17,10 +19,17 @@ from core.utils import NotificationType
 router = APIRouter(prefix="/comments", tags=["Comments"])
 
 
-def _build_comment_public(comment: Comment, session: Session) -> CommentPublic:
+def _build_comment_public(
+    comment: Comment,
+    session: Session,
+    reply_counts: Mapping[uuid.UUID, int] | None = None,
+) -> CommentPublic:
     """Attach reply_count to a comment before returning it to the frontend."""
     result = CommentPublic.model_validate(comment, from_attributes=True)
-    result.reply_count = comment_crud.count_direct_replies(session, comment.id)
+    if reply_counts is None:
+        result.reply_count = comment_crud.count_direct_replies(session, comment.id)
+    else:
+        result.reply_count = reply_counts.get(comment.id, 0)
     return result
 
 
@@ -34,18 +43,22 @@ def create_comment(
     Set parent_id to reply to an existing comment (max 5 levels deep)."""
     project = None
     if comment_in.project_id:
-        project = project_crud.get_project_by_id(
-            session=session, project_id=comment_in.project_id
+        project = session.exec(
+            select(Project.id, Project.creator_id).where(Project.id == comment_in.project_id)
         )
-        if not project:
+        project = project.first()
+        if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
 
     recruitment = None
     if comment_in.recruitment_id:
-        recruitment = recruitment_crud.get_recruitment_by_id(
-            session=session, recruitment_id=comment_in.recruitment_id
+        recruitment = session.exec(
+            select(Recruitment.id, Recruitment.creator_id).where(
+                Recruitment.id == comment_in.recruitment_id
+            )
         )
-        if not recruitment:
+        recruitment = recruitment.first()
+        if recruitment is None:
             raise HTTPException(status_code=404, detail="Recruitment not found")
 
     parent = None
@@ -110,6 +123,8 @@ def create_comment(
                 related_entity_id=comment.id,
             )
 
+    session.commit()
+
     return _build_comment_public(comment, session)
 
 
@@ -123,12 +138,15 @@ def get_project_comments(
     """Paginated top-level comments for a project.
     Each comment includes reply_count so the frontend can show a 'load replies' button.
     """
-    if not project_crud.get_project_by_id(session=session, project_id=project_id):
+    if not project_crud.project_exists(session=session, project_id=project_id):
         raise HTTPException(status_code=404, detail="Project not found")
     comments = comment_crud.get_comments_by_project(
         session=session, project_id=project_id, skip=skip, limit=limit
     )
-    return [_build_comment_public(c, session) for c in comments]
+    reply_counts = comment_crud.count_direct_replies_for_comments(
+        session=session, comment_ids=[c.id for c in comments]
+    )
+    return [_build_comment_public(c, session, reply_counts) for c in comments]
 
 
 @router.get("/recruitment/{recruitment_id}", response_model=List[CommentPublic])
@@ -139,14 +157,17 @@ def get_recruitment_comments(
     session: Session = Depends(get_session),
 ):
     """Paginated top-level comments for a recruitment post."""
-    if not recruitment_crud.get_recruitment_by_id(
+    if not recruitment_crud.recruitment_exists(
         session=session, recruitment_id=recruitment_id
     ):
         raise HTTPException(status_code=404, detail="Recruitment not found")
     comments = comment_crud.get_comments_by_recruitment(
         session=session, recruitment_id=recruitment_id, skip=skip, limit=limit
     )
-    return [_build_comment_public(c, session) for c in comments]
+    reply_counts = comment_crud.count_direct_replies_for_comments(
+        session=session, comment_ids=[c.id for c in comments]
+    )
+    return [_build_comment_public(c, session, reply_counts) for c in comments]
 
 
 @router.get("/{comment_id}/replies", response_model=CommentRepliesPage)
@@ -161,9 +182,12 @@ def get_comment_replies(
     replies = comment_crud.get_replies_by_comment(
         session=session, comment_id=comment_id, skip=skip, limit=limit
     )
+    reply_counts = comment_crud.count_direct_replies_for_comments(
+        session=session, comment_ids=[r.id for r in replies]
+    )
     total = comment_crud.count_direct_replies(session=session, comment_id=comment_id)
     return CommentRepliesPage(
-        replies=[_build_comment_public(r, session) for r in replies],
+        replies=[_build_comment_public(r, session, reply_counts) for r in replies],
         total=total,
     )
 
@@ -194,16 +218,18 @@ def delete_comment(
 
     is_post_creator = False
     if comment.project_id:
-        project = project_crud.get_project_by_id(
-            session=session, project_id=comment.project_id
-        )
-        if project and project.creator_id == current_user.id:
+        project_creator_id = session.exec(
+            select(Project.creator_id).where(Project.id == comment.project_id)
+        ).first()
+        if project_creator_id == current_user.id:
             is_post_creator = True
     elif comment.recruitment_id:
-        recruitment = recruitment_crud.get_recruitment_by_id(
-            session=session, recruitment_id=comment.recruitment_id
-        )
-        if recruitment and recruitment.creator_id == current_user.id:
+        recruitment_creator_id = session.exec(
+            select(Recruitment.creator_id).where(
+                Recruitment.id == comment.recruitment_id
+            )
+        ).first()
+        if recruitment_creator_id == current_user.id:
             is_post_creator = True
 
     if comment.author_id != current_user.id and not is_post_creator:
@@ -212,3 +238,4 @@ def delete_comment(
         )
 
     comment_crud.delete_comment(session=session, db_comment=comment)
+    session.commit()

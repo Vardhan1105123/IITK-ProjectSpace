@@ -1,4 +1,5 @@
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import Index
 from typing import Optional, List
 from datetime import datetime
 import uuid
@@ -23,6 +24,12 @@ class Comment(SQLModel, table=True):
 
     created_at: datetime = Field(default_factory=now)
     updated_at: datetime = Field(default_factory=now)
+
+    __table_args__ = (
+        Index("ix_comment_project_id", "project_id"),
+        Index("ix_comment_recruitment_id", "recruitment_id"),
+        Index("ix_comment_parent_created_at", "parent_id", "created_at"),
+    )
 
     # Relationships
     project: Optional["Project"] = Relationship(back_populates="comments")

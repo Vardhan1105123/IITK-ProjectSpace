@@ -1,11 +1,11 @@
 import { authHeaders } from "@/lib/token";
 import {
-  ProjectPublic,
-  normalizeProjectPublic,
+  ProjectSummary,
+  normalizeProjectSummary,
 } from "./projectApi";
 import {
-  RecruitmentPublic,
-  normalizeRecruitmentPublic,
+  RecruitmentSummary,
+  normalizeRecruitmentSummary,
 } from "./recruitmentApi";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -174,43 +174,43 @@ export async function searchUsers(q: string): Promise<UserProfileView[]> {
   return data.map(mapUserProfileView);
 }
 
-export async function fetchMyProjects(): Promise<ProjectPublic[]> {
+export async function fetchMyProjects(): Promise<ProjectSummary[]> {
   const res = await fetch(`${API}/users/me/projects`, {
     headers: { "Content-Type": "application/json", ...authHeaders() },
   });
   if (res.status === 401) throw new Error("Unauthorized");
   if (!res.ok) throw new Error("Failed to fetch projects");
-  const data = (await res.json()) as ProjectPublic[];
-  return data.map(normalizeProjectPublic);
+  const data = (await res.json()) as ProjectSummary[];
+  return data.map(normalizeProjectSummary);
 }
 
 // fetches the recruitments managed by user
-export async function fetchMyRecruitments(): Promise<RecruitmentPublic[]> {
+export async function fetchMyRecruitments(): Promise<RecruitmentSummary[]> {
   const res = await fetch(`${API}/users/me/recruitments`, {
     headers: { "Content-Type": "application/json", ...authHeaders() },
   });
   if (res.status === 401) throw new Error("Unauthorized");
   if (!res.ok) throw new Error("Failed to fetch recruitments");
-  const data = (await res.json()) as RecruitmentPublic[];
-  return data.map(normalizeRecruitmentPublic);
+  const data = (await res.json()) as RecruitmentSummary[];
+  return data.map(normalizeRecruitmentSummary);
 }
 
-export async function getUserProjects(userId: string): Promise<ProjectPublic[]> {
+export async function getUserProjects(userId: string): Promise<ProjectSummary[]> {
   const res = await fetch(`${API}/users/${userId}/projects`, {
     headers: { "Content-Type": "application/json", ...authHeaders() },
   });
   if (res.status === 401) throw new Error("Unauthorized");
   if (!res.ok) throw new Error("Failed to fetch user projects");
-  const data = (await res.json()) as ProjectPublic[];
-  return data.map(normalizeProjectPublic);
+  const data = (await res.json()) as ProjectSummary[];
+  return data.map(normalizeProjectSummary);
 }
 
-export async function getUserRecruitments(userId: string): Promise<RecruitmentPublic[]> {
+export async function getUserRecruitments(userId: string): Promise<RecruitmentSummary[]> {
   const res = await fetch(`${API}/users/${userId}/recruitments`, {
     headers: { "Content-Type": "application/json", ...authHeaders() },
   });
   if (res.status === 401) throw new Error("Unauthorized");
   if (!res.ok) throw new Error("Failed to fetch user recruitments");
-  const data = (await res.json()) as RecruitmentPublic[];
-  return data.map(normalizeRecruitmentPublic);
+  const data = (await res.json()) as RecruitmentSummary[];
+  return data.map(normalizeRecruitmentSummary);
 }

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 from typing import List
 import uuid
 import pathlib
@@ -9,9 +10,11 @@ import shutil
 from core.database import get_session
 from core.dependencies import get_current_user
 from models.user import User
+from models.project import Project, ProjectTeamLink
+from models.recruitments import Recruitment, RecruitmentRecruiterLink
 from schemas.user import UserPublic, UserUpdate, UserProfileView
-from schemas.project import ProjectPublic
-from schemas.recruitments import RecruitmentPublic
+from schemas.project import ProjectSummary
+from schemas.recruitments import RecruitmentSummary
 from crud.user import update_user, get_user_by_id
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -47,7 +50,11 @@ def edit_my_profile(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    return update_user(session=session, db_user=current_user, user_update=user_update)
+    updated_user = update_user(
+        session=session, db_user=current_user, user_update=user_update
+    )
+    session.commit()
+    return updated_user
 
 
 @router.post("/me/profile-picture", response_model=UserPublic)
@@ -119,21 +126,44 @@ def remove_profile_picture(
 
 
 # Get current user's projects
-@router.get("/me/projects", response_model=List[ProjectPublic])
+@router.get("/me/projects", response_model=List[ProjectSummary])
 def get_my_projects(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    return current_user.projects
+    statement = (
+        select(Project)
+        .join(ProjectTeamLink, ProjectTeamLink.project_id == Project.id)
+        .where(ProjectTeamLink.user_id == current_user.id)
+        .order_by(Project.created_at.desc())
+        .options(
+            selectinload(Project.creator),
+            selectinload(Project.team_members),
+        )
+    )
+    return session.exec(statement).all()
 
 
 # Get current user's recruitments
-@router.get("/me/recruitments", response_model=List[RecruitmentPublic])
+@router.get("/me/recruitments", response_model=List[RecruitmentSummary])
 def get_my_recruitments(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    return current_user.managed_recruitments
+    statement = (
+        select(Recruitment)
+        .join(
+            RecruitmentRecruiterLink,
+            RecruitmentRecruiterLink.recruitment_id == Recruitment.id,
+        )
+        .where(RecruitmentRecruiterLink.user_id == current_user.id)
+        .order_by(Recruitment.created_at.desc())
+        .options(
+            selectinload(Recruitment.creator),
+            selectinload(Recruitment.recruiters),
+        )
+    )
+    return session.exec(statement).all()
 
 
 # Get the detail of some other user
@@ -151,7 +181,7 @@ def get_user_profile(
     return user
 
 
-@router.get("/{user_id}/projects", response_model=List[ProjectPublic])
+@router.get("/{user_id}/projects", response_model=List[ProjectSummary])
 def get_user_projects(
     user_id: uuid.UUID,
     session: Session = Depends(get_session),
@@ -160,10 +190,21 @@ def get_user_projects(
     user = get_user_by_id(session=session, user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user.projects
+
+    statement = (
+        select(Project)
+        .join(ProjectTeamLink, ProjectTeamLink.project_id == Project.id)
+        .where(ProjectTeamLink.user_id == user_id)
+        .order_by(Project.created_at.desc())
+        .options(
+            selectinload(Project.creator),
+            selectinload(Project.team_members),
+        )
+    )
+    return session.exec(statement).all()
 
 
-@router.get("/{user_id}/recruitments", response_model=List[RecruitmentPublic])
+@router.get("/{user_id}/recruitments", response_model=List[RecruitmentSummary])
 def get_user_recruitments(
     user_id: uuid.UUID,
     session: Session = Depends(get_session),
@@ -172,4 +213,17 @@ def get_user_recruitments(
     user = get_user_by_id(session=session, user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user.managed_recruitments
+    statement = (
+        select(Recruitment)
+        .join(
+            RecruitmentRecruiterLink,
+            RecruitmentRecruiterLink.recruitment_id == Recruitment.id,
+        )
+        .where(RecruitmentRecruiterLink.user_id == user_id)
+        .order_by(Recruitment.created_at.desc())
+        .options(
+            selectinload(Recruitment.creator),
+            selectinload(Recruitment.recruiters),
+        )
+    )
+    return session.exec(statement).all()

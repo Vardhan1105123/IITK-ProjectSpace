@@ -1,6 +1,7 @@
 from sqlmodel import Session, select, func
+from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
-from typing import Sequence
+from typing import Sequence, Dict
 import uuid
 
 from models.comments import Comment
@@ -56,7 +57,7 @@ def create_comment(
         author_id=author_id,
     )
     session.add(db_comment)
-    session.commit()
+    session.flush()
     session.refresh(db_comment)
     return db_comment
 
@@ -72,6 +73,7 @@ def get_comments_by_project(
     return session.exec(
         select(Comment)
         .where(Comment.project_id == project_id, Comment.parent_id == None)
+        .options(selectinload(Comment.author))
         .order_by(Comment.created_at.asc())
         .offset(skip)
         .limit(limit)
@@ -85,6 +87,7 @@ def get_comments_by_recruitment(
     return session.exec(
         select(Comment)
         .where(Comment.recruitment_id == recruitment_id, Comment.parent_id == None)
+        .options(selectinload(Comment.author))
         .order_by(Comment.created_at.asc())
         .offset(skip)
         .limit(limit)
@@ -98,6 +101,7 @@ def get_replies_by_comment(
     return session.exec(
         select(Comment)
         .where(Comment.parent_id == comment_id)
+        .options(selectinload(Comment.author))
         .order_by(Comment.created_at.asc())
         .offset(skip)
         .limit(limit)
@@ -109,6 +113,27 @@ def count_direct_replies(session: Session, comment_id: uuid.UUID) -> int:
     return session.exec(
         select(func.count()).select_from(Comment).where(Comment.parent_id == comment_id)
     ).one()
+
+
+def count_direct_replies_for_comments(
+    session: Session, comment_ids: Sequence[uuid.UUID]
+) -> Dict[uuid.UUID, int]:
+    """Batch reply-count lookup for many comment IDs at once."""
+    unique_ids = list(dict.fromkeys(comment_ids))
+    if not unique_ids:
+        return {}
+
+    rows = session.exec(
+        select(Comment.parent_id, func.count(Comment.id))
+        .where(Comment.parent_id.in_(unique_ids))
+        .group_by(Comment.parent_id)
+    ).all()
+
+    return {
+        parent_id: int(reply_count)
+        for parent_id, reply_count in rows
+        if parent_id is not None
+    }
 
 
 def count_comments_by_project(session: Session, project_id: uuid.UUID) -> int:
@@ -130,4 +155,3 @@ def count_comments_by_recruitment(session: Session, recruitment_id: uuid.UUID) -
 def delete_comment(session: Session, db_comment: Comment) -> None:
     """DB cascade handles deleting all child replies automatically."""
     session.delete(db_comment)
-    session.commit()

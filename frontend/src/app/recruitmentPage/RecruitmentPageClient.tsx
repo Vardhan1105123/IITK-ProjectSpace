@@ -10,11 +10,15 @@ import {
   acceptRecruiterInvite,
   rejectRecruiterInvite,
   getRecruitment,
+  getRecruitmentApplications,
+  getMyRecruitmentApplication,
   applyToRecruitment,
   updateRecruitment,
   updateApplicationStatus,
   RecruitmentPublic,
-  UserSummary
+  UserSummary,
+  ApplicationPublic,
+  MyRecruitmentApplicationPublic,
 } from "@/lib/recruitmentApi";
 import { fetchMyProfile } from "@/lib/profileApi";
 import { getRepresentativeString } from "@/lib/formatTeam";
@@ -41,7 +45,7 @@ export interface Recruitment {
   application_count?: number;
   creator_name?: string;
   creator_avatar_url?: string;
-  applications: RecruitmentPublic["applications"];
+  applications: ApplicationPublic[];
 }
 
 /* Helpers */
@@ -101,8 +105,7 @@ function mapToRecruitment(r: RecruitmentPublic): Recruitment {
       department: rec.department,
       profile_picture_url: getFullUrl(rec.profile_picture_url ?? undefined),
     })),
-    application_count: r.applications.length,
-    applications: r.applications || [],
+    applications: [],
     creator_name: r.creator_name,
     creator_avatar_url: getFullUrl(r.creator_avatar_url ?? undefined),
   };
@@ -170,6 +173,7 @@ const RecruitmentPageContent: React.FC = () => {
   const [applyError, setApplyError]     = useState<string | null>(null);
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [applicationUpdating, setApplicationUpdating] = useState<Record<string, boolean>>({});
+  const [myApplication, setMyApplication] = useState<MyRecruitmentApplicationPublic | null>(null);
   const [inviteActionLoading, setInviteActionLoading] = useState<"accept" | "reject" | null>(null);
   const [inviteActionError, setInviteActionError] = useState<string | null>(null);
   const [inviteResolved, setInviteResolved] = useState(false);
@@ -185,9 +189,28 @@ const RecruitmentPageContent: React.FC = () => {
           getRecruitment(recruitmentId),
           fetchMyProfile(),
         ]);
-        setRecruitment(mapToRecruitment(raw));
+        const mapped = mapToRecruitment(raw);
+        const viewerIsRecruiter = mapped.recruiters.some((r) => r.id === me.id);
+        setRecruitment(mapped);
         setCurrentUserId(me.id);
         setCreatorId(raw.creator_id);
+
+        if (viewerIsRecruiter) {
+          const applications = await getRecruitmentApplications(recruitmentId);
+          setRecruitment((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  applications,
+                  application_count: applications.length,
+                }
+              : prev
+          );
+          setMyApplication(null);
+        } else {
+          const mine = await getMyRecruitmentApplication(recruitmentId);
+          setMyApplication(mine);
+        }
       } catch (error: unknown) {
         const message = getErrorMessage(error, "");
         if (message === "Unauthorized") { router.replace("/auth"); return; }
@@ -223,17 +246,11 @@ const RecruitmentPageContent: React.FC = () => {
     setApplying(true);
     setApplyError(null);
     try {
-      const createdApplication = await applyToRecruitment(recruitment.id, {
+      await applyToRecruitment(recruitment.id, {
         recruitment_id: recruitment.id,
       });
-      setRecruitment((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          applications: [...prev.applications, createdApplication],
-          application_count: (prev.application_count ?? prev.applications.length) + 1,
-        };
-      });
+      const mine = await getMyRecruitmentApplication(recruitment.id);
+      setMyApplication(mine);
     } catch (error: unknown) {
       setApplyError(getErrorMessage(error, "Failed to apply. Please try again."));
     } finally {
@@ -292,9 +309,9 @@ const RecruitmentPageContent: React.FC = () => {
   const showInviteBanner = hasPendingInvite && !inviteResolved;
   const isOpen     = recruitment?.status === "Open";
   const wasUpdated = recruitment ? recruitment.updated_at !== recruitment.created_at : false;
-  const myApplication =
+  const myApplicationFromRecruiterList =
     recruitment?.applications?.find((app) => app.applicant.id === currentUserId) ?? null;
-  const myApplicationStatus = myApplication?.status as
+  const myApplicationStatus = (myApplication?.status ?? myApplicationFromRecruiterList?.status) as
     | "Pending"
     | "Accepted"
     | "Rejected"
@@ -309,8 +326,29 @@ const RecruitmentPageContent: React.FC = () => {
 
   const refreshRecruitment = async () => {
     const raw = await getRecruitment(recruitmentId);
-    setRecruitment(mapToRecruitment(raw));
+    const mapped = mapToRecruitment(raw);
+    setRecruitment(mapped);
     setCreatorId(raw.creator_id);
+
+    if (!currentUserId) return;
+    const viewerIsRecruiter = mapped.recruiters.some((r) => r.id === currentUserId);
+    if (viewerIsRecruiter) {
+      const applications = await getRecruitmentApplications(recruitmentId);
+      setRecruitment((prev) =>
+        prev
+          ? {
+              ...prev,
+              applications,
+              application_count: applications.length,
+            }
+          : prev
+      );
+      setMyApplication(null);
+      return;
+    }
+
+    const mine = await getMyRecruitmentApplication(recruitmentId);
+    setMyApplication(mine);
   };
 
   const handleInviteAction = async (decision: "accept" | "reject") => {
@@ -669,4 +707,3 @@ const RecruitmentPage: React.FC = () => (
 );
 
 export default RecruitmentPage;
-

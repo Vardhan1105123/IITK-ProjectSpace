@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session
+from sqlmodel import Session, select
 import uuid
 from typing import Any
 
@@ -29,6 +29,12 @@ def read_notifications(
         session=db, user_id=current_user.id, limit=limit, offset=offset
     )
 
+    sender_ids = {n.sender_id for n in results if n.sender_id}
+    sender_map = {}
+    if sender_ids:
+        senders = db.exec(select(User).where(User.id.in_(sender_ids))).all()
+        sender_map = {sender.id: sender for sender in senders}
+
     # Map sender details efficiently
     enriched_results = []
 
@@ -37,7 +43,7 @@ def read_notifications(
         sender_avatar = None
 
         if n.sender_id:
-            sender = db.get(User, n.sender_id)
+            sender = sender_map.get(n.sender_id)
             if sender:
                 sender_name = sender.fullname
                 sender_avatar = sender.profile_picture_url
@@ -81,6 +87,7 @@ def mark_single_notification_read(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found"
         )
+    db.commit()
     return {"message": "Notification marked as read"}
 
 
@@ -98,6 +105,7 @@ def delete_single_notification(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found"
         )
+    db.commit()
     return {"message": "Notification deleted"}
 
 
@@ -108,4 +116,5 @@ def mark_all_notifications_read(
 ):
     """Utility endpoint to clear the unread badge counter in one click."""
     mark_all_read(session=db, user_id=current_user.id)
+    db.commit()
     return {"message": "All unread notifications marked as read"}

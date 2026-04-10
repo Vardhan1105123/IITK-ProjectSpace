@@ -20,6 +20,7 @@ from schemas.recruitments import (
     ApplicationCreate,
     ApplicationUpdate,
     ApplicationPublic,
+    MyRecruitmentApplicationPublic,
 )
 from crud.recruitment import (
     create_recruitment,
@@ -30,6 +31,8 @@ from crud.recruitment import (
     delete_recruitment,
     create_application,
     get_application_by_id,
+    get_recruitment_applications,
+    get_my_recruitment_application,
     update_application_status,
 )
 from crud.notification import create_notification
@@ -74,7 +77,9 @@ def create_new_recruitment(
     recruitment_in.recruiter_ids = []
 
     recruitment = create_recruitment(
-        session=db, recruitment_create=recruitment_in, creator_id=current_user.id
+        session=db,
+        recruitment_create=recruitment_in,
+        creator_id=current_user.id,
     )
 
     if recruiter_ids:
@@ -108,7 +113,7 @@ def create_new_recruitment(
 
 @router.get("/", response_model=List[RecruitmentSummary])
 def read_recruitments(
-    skip: int = 0, limit: int = 100, db: Session = Depends(get_session)
+    skip: int = 0, limit: int = 20, db: Session = Depends(get_session)
 ):
     """Returns a lightweight list of recruitment cards."""
     return get_all_recruitments(session=db, skip=skip, limit=limit)
@@ -122,7 +127,7 @@ def get_recruitment_count(db: Session = Depends(get_session)):
 
 @router.get("/{recruitment_id}", response_model=RecruitmentPublic)
 def read_recruitment(recruitment_id: uuid.UUID, db: Session = Depends(get_session)):
-    """Returns the full recruitment post, including all recruiters and applications."""
+    """Returns full recruitment details without comments/applications payloads."""
     recruitment = get_recruitment_by_id(session=db, recruitment_id=recruitment_id)
     if not recruitment:
         raise HTTPException(
@@ -151,9 +156,11 @@ def update_existing_recruitment(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only managing recruiters can edit this post.",
         )
-    return update_recruitment(
+    updated_recruitment = update_recruitment(
         session=db, db_recruitment=recruitment, recruitment_update=recruitment_update
     )
+    db.commit()
+    return updated_recruitment
 
 
 @router.delete("/{recruitment_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -174,6 +181,7 @@ def delete_existing_recruitment(
             detail="Only managing recruiters can delete this post.",
         )
     delete_recruitment(session=db, db_recruitment=recruitment)
+    db.commit()
 
 
 # Recruiter management
@@ -230,9 +238,6 @@ def invite_recruiter(
 
     link = RecruitmentPendingLink(recruitment_id=recruitment_id, user_id=user_id)
     db.add(link)
-    db.commit()
-    db.refresh(recruitment)
-    recruitment.creator = db.get(User, recruitment.creator_id)
 
     create_notification(
         session=db,
@@ -244,6 +249,10 @@ def invite_recruiter(
         sender_id=current_user.id,
         related_entity_id=recruitment_id,
     )
+
+    db.commit()
+    db.refresh(recruitment)
+    recruitment.creator = db.get(User, recruitment.creator_id)
 
     return recruitment
 
@@ -276,9 +285,6 @@ def accept_recruiter_invite(
     db.add(
         RecruitmentRecruiterLink(recruitment_id=recruitment_uuid, user_id=current_user.id)
     )
-    db.commit()
-    db.refresh(recruitment)
-    recruitment.creator = db.get(User, recruitment.creator_id)
 
     create_notification(
         session=db,
@@ -290,6 +296,10 @@ def accept_recruiter_invite(
         sender_id=current_user.id,
         related_entity_id=recruitment_uuid,
     )
+
+    db.commit()
+    db.refresh(recruitment)
+    recruitment.creator = db.get(User, recruitment.creator_id)
 
     return recruitment
 
@@ -319,9 +329,6 @@ def reject_recruiter_invite(
         )
 
     db.delete(pending_link)
-    db.commit()
-    db.refresh(recruitment)
-    recruitment.creator = db.get(User, recruitment.creator_id)
 
     create_notification(
         session=db,
@@ -333,6 +340,10 @@ def reject_recruiter_invite(
         sender_id=current_user.id,
         related_entity_id=recruitment_uuid,
     )
+
+    db.commit()
+    db.refresh(recruitment)
+    recruitment.creator = db.get(User, recruitment.creator_id)
 
     return recruitment
 
@@ -375,9 +386,6 @@ def remove_recruiter(
         )
 
     db.delete(link)
-    db.commit()
-    db.refresh(recruitment)
-    recruitment.creator = db.get(User, recruitment.creator_id)
 
     if current_user.id == user_id:
         create_notification(
@@ -402,10 +410,59 @@ def remove_recruiter(
             related_entity_id=recruitment_id,
         )
 
+    db.commit()
+    db.refresh(recruitment)
+    recruitment.creator = db.get(User, recruitment.creator_id)
+
     return recruitment
 
 
 # Applications
+
+
+@router.get("/{recruitment_id}/applications", response_model=List[ApplicationPublic])
+def read_recruitment_applications(
+    recruitment_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    recruitment = get_recruitment_by_id(session=db, recruitment_id=recruitment_id)
+    if not recruitment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Recruitment not found"
+        )
+
+    if current_user.id not in [r.id for r in recruitment.recruiters]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only managing recruiters can view applications.",
+        )
+
+    return get_recruitment_applications(
+        session=db, recruitment_id=recruitment_id, skip=skip, limit=limit
+    )
+
+
+@router.get(
+    "/{recruitment_id}/applications/me",
+    response_model=MyRecruitmentApplicationPublic | None,
+)
+def read_my_recruitment_application(
+    recruitment_id: uuid.UUID,
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    recruitment = get_recruitment_by_id(session=db, recruitment_id=recruitment_id)
+    if not recruitment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Recruitment not found"
+        )
+
+    return get_my_recruitment_application(
+        session=db, recruitment_id=recruitment_id, applicant_id=current_user.id
+    )
 
 
 @router.post(
@@ -468,6 +525,8 @@ def apply_for_recruitment(
         related_entity_id=application.id,
     )
 
+    db.commit()
+
     return application
 
 
@@ -514,6 +573,8 @@ def update_application(
         sender_id=current_user.id,
         related_entity_id=application.id,
     )
+
+    db.commit()
 
     return updated_app
 
