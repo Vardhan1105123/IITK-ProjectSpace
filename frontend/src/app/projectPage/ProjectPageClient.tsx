@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 
 import React, { useState, useEffect, Suspense } from "react";
 import "./projectPage.css";
@@ -197,6 +196,16 @@ const ProjectPageContent: React.FC = () => {
   useEffect(() => {
     setInviteResolved(false);
   }, [projectId]);
+
+  // Scroll to comments and focus the compose box if navigated here with #comments hash
+  useEffect(() => {
+    if (project && window.location.hash === "#comments") {
+      document.getElementById("comments")?.scrollIntoView({ behavior: "smooth" });
+      setTimeout(() => {
+        document.querySelector<HTMLTextAreaElement>(".cs-compose-input")?.focus();
+      }, 200);
+    }
+  }, [project]);
 
   const isTeamMember = project?.team_members?.some((m) => m.id === currentUserId) ?? false;
   const hasPendingInvite = project?.pending_members?.some((m) => m.id === currentUserId) ?? false;
@@ -396,7 +405,7 @@ const ProjectPageContent: React.FC = () => {
               </div>
 
               {/* Comments */}
-              <hr className="project-divider" />
+              <hr id="comments" className="project-divider" />
               <CommentsSection
                 postId={project.id}
                 postType="project"

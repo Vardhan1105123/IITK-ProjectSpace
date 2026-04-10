@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 
 import React, { Suspense, useState, useEffect, useRef } from "react";
 import "./homePage.css";
@@ -343,9 +342,10 @@ const TeamPanel: React.FC<{ members: FeedMember[] }> = ({ members }) => (
 const ActionBar: React.FC<{
   shareUrl: string;
   onOpenShare: (url: string) => void;
-}> = ({ shareUrl, onOpenShare }) => (
+  onComment: () => void;
+}> = ({ shareUrl, onOpenShare, onComment }) => (
   <div className="feed-actions">
-    <button className="feed-action-btn" onClick={(e) => e.stopPropagation()}>
+    <button className="feed-action-btn" onClick={(e) => { e.stopPropagation(); onComment(); }}>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
       </svg>
@@ -390,7 +390,8 @@ const ProjectCard: React.FC<{
   item: ProjectFeedItem;
   onClick: () => void;
   onOpenShare: (url: string) => void;
-}> = ({ item, onClick, onOpenShare }) => {
+  onComment: () => void;
+}> = ({ item, onClick, onOpenShare, onComment }) => {
   const hasImage = item.media_urls.length > 0;
   const shareUrl = `${window.location.origin}/projectPage?id=${item.id}`;
   return (
@@ -409,7 +410,7 @@ const ProjectCard: React.FC<{
         ) : (
           <p className="feed-snippet-plain">{item.description}</p>
         )}
-        <ActionBar shareUrl={shareUrl} onOpenShare={onOpenShare} />
+        <ActionBar shareUrl={shareUrl} onOpenShare={onOpenShare} onComment={onComment} />
       </div>
     </div>
   );
@@ -420,7 +421,8 @@ const RecruitmentCard: React.FC<{
   item: RecruitmentFeedItem;
   onClick: () => void;
   onOpenShare: (url: string) => void;
-}> = ({ item, onClick, onOpenShare }) => {
+  onComment: () => void;
+}> = ({ item, onClick, onOpenShare, onComment }) => {
   const hasImage = item.media_urls.length > 0;
   const isOpen = item.status === "Open";
   const shareUrl = `${window.location.origin}/recruitmentPage?id=${item.id}`;
@@ -443,7 +445,7 @@ const RecruitmentCard: React.FC<{
         ) : (
           <p className="feed-snippet-plain">{item.description}</p>
         )}
-        <ActionBar shareUrl={shareUrl} onOpenShare={onOpenShare} />
+        <ActionBar shareUrl={shareUrl} onOpenShare={onOpenShare} onComment={onComment} />
       </div>
     </div>
   );
@@ -608,14 +610,12 @@ const HomePage: React.FC = () => {
 
   useEffect(() => {
     fetchProjects(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (activeTab === "recruitment" && !recruitmentsInitialized) {
       fetchRecruitments(1);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const handleProjectPageChange = (page: number) => {
@@ -707,6 +707,7 @@ const HomePage: React.FC = () => {
                           item={p}
                           onClick={() => router.push(`/projectPage?id=${p.id}`)}
                           onOpenShare={handleOpenShare}
+                          onComment={() => router.push(`/projectPage?id=${p.id}#comments`)}
                         />
                       ))}
                     </div>
@@ -725,6 +726,7 @@ const HomePage: React.FC = () => {
                           item={r}
                           onClick={() => router.push(`/recruitmentPage?id=${r.id}`)}
                           onOpenShare={handleOpenShare}
+                          onComment={() => router.push(`/recruitmentPage?id=${r.id}#comments`)}
                         />
                       ))}
                     </div>

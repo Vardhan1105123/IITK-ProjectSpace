@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 
 import React, { useState, useEffect, Suspense } from "react";
 import "./recruitmentPage.css";
@@ -208,6 +207,16 @@ const RecruitmentPageContent: React.FC = () => {
   useEffect(() => {
     setInviteResolved(false);
   }, [recruitmentId]);
+
+  // Scroll to comments and focus the compose box if navigated here with #comments hash
+  useEffect(() => {
+    if (recruitment && window.location.hash === "#comments") {
+      document.getElementById("comments")?.scrollIntoView({ behavior: "smooth" });
+      setTimeout(() => {
+        document.querySelector<HTMLTextAreaElement>(".cs-compose-input")?.focus();
+      }, 200);
+    }
+  }, [recruitment]);
 
   const handleApply = async () => {
     if (!recruitment) return;
@@ -636,7 +645,7 @@ const RecruitmentPageContent: React.FC = () => {
               )}
 
               {/* Comments */}
-              <hr className="recruit-divider" />
+              <hr id="comments" className="recruit-divider" />
               <CommentsSection
                 postId={recruitment.id}
                 postType="recruitment"
