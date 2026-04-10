@@ -1,6 +1,4 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
-
 import React, { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import "./commentsSection.css";

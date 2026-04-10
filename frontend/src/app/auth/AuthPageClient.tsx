@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 import React, { useState } from "react";
 import "./loginPage.css";
 import OtpPopUp from "./otpPopUp";

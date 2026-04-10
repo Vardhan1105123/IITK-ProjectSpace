@@ -1,5 +1,4 @@
 "use client"
-/* eslint-disable @next/next/no-img-element */
 import React, { useState, useEffect, useRef , Suspense} from "react";
 import { useRouter } from "next/navigation";
 import "./editProfilePage.css";
