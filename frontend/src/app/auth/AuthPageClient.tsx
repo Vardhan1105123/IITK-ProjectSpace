@@ -111,7 +111,10 @@ const LoginPage = () => {
     setIsLoading(true);
     try {
       if (!email) return triggerAlert("Please enter your email.", "error");
-      if (purpose === "register" && !fullname) return triggerAlert("Please enter your name.", "error");
+      if (purpose === "register") {
+        if (!fullname.trim()) return triggerAlert("Please enter your name.", "error");
+        if (!/^[A-Za-z\s\.\-']+$/.test(fullname)) return triggerAlert("Name can only contain letters, spaces, dots, hyphens, and apostrophes.", "error");
+      }
 
       if (purpose === "register") {
         await requestRegistrationOTP(email, fullname);

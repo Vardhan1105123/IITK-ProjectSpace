@@ -146,6 +146,14 @@ const EditProfilePage: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!profile || !form) return;
+
+    if (!form.fullname.trim()) {
+      return setSaveError("Please enter your full name.");
+    }
+
+    if (form.fullname && !/^[A-Za-z\s\.\-']+$/.test(form.fullname)) {
+      return setSaveError("Name can only contain letters, spaces, dots, hyphens, and apostrophes.");
+    }
     
     if (!form.designation.trim()) return setSaveError("Please select a designation.");
     if (!form.degree.trim()) return setSaveError("Please select a degree.");
