@@ -16,8 +16,17 @@ const AlertPopUp = ({ message, type, onClose }: AlertPopUpProps) => {
   useEffect(() => {
     const originalStyle = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Enter" || event.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
     return () => {
       document.body.style.overflow = originalStyle;
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 

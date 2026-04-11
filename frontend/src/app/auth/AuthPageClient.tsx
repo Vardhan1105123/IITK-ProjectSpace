@@ -202,6 +202,16 @@ const LoginPage = () => {
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoading) return;
+    if (mode === "login") handleLogin();
+    else if (mode === "register-step1") openOtp("register");
+    else if (mode === "register-password") handleRegister();
+    else if (mode === "forgot-email") openOtp("reset");
+    else if (mode === "forgot-reset") handlePasswordReset();
+  };
+
   return (
     <div className="auth-container">
       {/* Background image */}
@@ -210,14 +220,14 @@ const LoginPage = () => {
       <div className="bg-overlay"></div>
 
       {/* Auth card container */}
-      <div className={`auth-card ${mode !== "login" ? "expanded" : ""}`}>
+      <form className={`auth-card ${mode !== "login" ? "expanded" : ""}`} onSubmit={handleSubmit}>
         <h1 className="welcome-title">Welcome</h1>
 
         {/* Login/Register toggle */}
         {showTabs && (
           <div className="toggle">
-            <button className={mode === "login" ? "active" : ""} onClick={() => handleModeSwitch("login")}>Login</button>
-            <button className={mode.startsWith("register") ? "active" : ""} onClick={() => handleModeSwitch("register-step1")}> Register </button>
+            <button type="button" className={mode === "login" ? "active" : ""} onClick={() => handleModeSwitch("login")}>Login</button>
+            <button type="button" className={mode.startsWith("register") ? "active" : ""} onClick={() => handleModeSwitch("register-step1")}> Register </button>
           </div>
         )}
 
@@ -237,10 +247,10 @@ const LoginPage = () => {
               )}
             </div>
 
-            <button className="primary-btn" onClick={handleLogin} disabled={isLoading}>
+            <button type="submit" className="primary-btn" disabled={isLoading}>
               {isLoading ? <div className="button-spinner"></div> : "Login"}
             </button>
-            <button className="google-btn">Sign in with Google</button>
+            <button type="button" className="google-btn">Sign in with Google</button>
 
             <p className="link" onClick={() => !isLoading && handleModeSwitch("forgot-email")}>Forgot Password?</p>
           </>
@@ -255,7 +265,7 @@ const LoginPage = () => {
             <label>IITK Email ID</label>
             <input type="email" placeholder="username@iitk.ac.in" value={email} onChange={(e) => setEmail(e.target.value)}/>
 
-            <button className="primary-btn" onClick={() => openOtp("register")} disabled={isLoading}>
+            <button type="submit" className="primary-btn" disabled={isLoading}>
               {isLoading ? <div className="button-spinner"></div> : "Next"}
             </button>
           </>
@@ -291,7 +301,7 @@ const LoginPage = () => {
               )}
             </div>
             
-            <button className="primary-btn" onClick={handleRegister} disabled={isLoading}>
+            <button type="submit" className="primary-btn" disabled={isLoading}>
               {isLoading ? <div className="button-spinner"></div> : "Register"}
             </button>
           </>
@@ -306,7 +316,7 @@ const LoginPage = () => {
             <label>IITK Email ID</label>
             <input type="email" placeholder="username@iitk.ac.in" value={email} onChange={(e) => setEmail(e.target.value)} />
 
-            <button className="primary-btn" onClick={() => openOtp("reset")} disabled={isLoading}>
+            <button type="submit" className="primary-btn" disabled={isLoading}>
               {isLoading ? <div className="button-spinner"></div> : "Next"}
             </button>
             
@@ -340,7 +350,7 @@ const LoginPage = () => {
               )}
             </div>
 
-            <button className="primary-btn" onClick={handlePasswordReset} disabled={isLoading}>
+            <button type="submit" className="primary-btn" disabled={isLoading}>
               {isLoading ? <div className="button-spinner"></div> : "Update Password"}
             </button>
             
@@ -369,7 +379,7 @@ const LoginPage = () => {
             onClose={() => setAlertConfig({ ...alertConfig, show: false })} 
           />
         )}
-      </div>
+      </form>
 
       {/* Right side hero section */}
       <div className="hero-content">

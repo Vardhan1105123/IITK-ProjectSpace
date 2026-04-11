@@ -41,7 +41,7 @@ const OtpPopUp = ({ message, onVerify, onClose }: OtpPopUpProps) => {
   // Render popup using React portal
   return createPortal(
     <div className="otp-backdrop">
-      <div className="otp-card">
+      <form className="otp-card" onSubmit={(e) => { e.preventDefault(); handleVerifyClick(); }}>
         <h2 className="otp-heading">OTP Verification</h2>
         <p className="otp-message">{message}</p>
 
@@ -53,10 +53,10 @@ const OtpPopUp = ({ message, onVerify, onClose }: OtpPopUpProps) => {
           placeholder="6-digit OTP"
         />
 
-        <button className="primary-btn" onClick={handleVerifyClick}>
+        <button type="submit" className="primary-btn">
           Verify
         </button>
-      </div>
+      </form>
     </div>,
     document.body
   );
