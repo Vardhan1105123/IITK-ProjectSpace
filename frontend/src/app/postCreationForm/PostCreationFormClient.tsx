@@ -4,6 +4,7 @@ import "./postCreationForm.css";
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown"
+import Link from "next/link";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { getToken } from "@/lib/token"
@@ -128,19 +129,6 @@ export default function PostCreationForm() {
 
     return () => clearTimeout(delayDebounceFn);
   }, [userSearchQuery, selectedUsers]);
-
-  useEffect(() => {
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setDropdownOpen(false);
-      setUserSearchResults([]);
-      const active = document.activeElement as HTMLElement | null;
-      if (active && active !== document.body) active.blur();
-    };
-
-    window.addEventListener("keydown", onEscape);
-    return () => window.removeEventListener("keydown", onEscape);
-  }, []);
 
   const handleSelectUser = (user: UserSummary) => {
     setSelectedUsers((prev) => [...prev, user]);
@@ -270,7 +258,7 @@ export default function PostCreationForm() {
 
         <main className="pcf-main">
           <p className="pcf-faq-hint">
-            In case of any query regarding post creation, please refer to the FAQs.
+            In case of any query regarding post creation, please refer to the <Link href="/faq" style={{ color: "var(--color-sky)", textDecoration: "underline" }}>FAQs</Link>.
           </p>
 
           <div className="pcf-form-container">
@@ -667,5 +655,3 @@ export default function PostCreationForm() {
     </div>
   );
 }
-
-
