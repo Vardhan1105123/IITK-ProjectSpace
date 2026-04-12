@@ -422,7 +422,7 @@ def upload_project_media(
     safe_name = _safe_filename(file.filename)
     file_path = os.path.join(save_dir, safe_name)
     with open(file_path, "wb") as buffer:
-        shutils.copyfileobj(file.file, buffer)
+        shutil.copyfileobj(file.file, buffer)
 
     # Format URL to point to our new media serving endpoint
     url_path = f"/projects/{project_id}/media/{safe_name}"

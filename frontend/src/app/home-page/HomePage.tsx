@@ -660,16 +660,16 @@ const HomePage: React.FC = () => {
           {/* Tabs */}
           <div className="home-tabs">
             <button
-              className={`home-tab${isRecruitTab ? " active" : ""}`}
-              onClick={() => setActiveTab("recruitment")}
-            >
-              <RecruitIcon /> Recruitment
-            </button>
-            <button
               className={`home-tab${isProjectTab ? " active" : ""}`}
               onClick={() => setActiveTab("project")}
             >
-              <ProjectIcon /> Project
+              <ProjectIcon /> Projects
+            </button>
+            <button
+              className={`home-tab${isRecruitTab ? " active" : ""}`}
+              onClick={() => setActiveTab("recruitment")}
+            >
+              <RecruitIcon /> Recruitments
             </button>
           </div>
 
@@ -757,4 +757,3 @@ const HomePage: React.FC = () => {
 };
 
 export default HomePage;
-

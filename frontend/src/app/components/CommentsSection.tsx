@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import "./CommentsSection.css";
 import ConfirmPopup from "./ConfirmPopup";
@@ -46,6 +46,18 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
+// Merges comments while preserving order and removing duplicate ids.
+function mergeUniqueComments(existing: Comment[], incoming: Comment[]): Comment[] {
+  const seen = new Set(existing.map((comment) => comment.id));
+  const merged = [...existing];
+  for (const comment of incoming) {
+    if (seen.has(comment.id)) continue;
+    seen.add(comment.id);
+    merged.push(comment);
+  }
+  return merged;
+}
+
 // Avatar component
 const Avatar: React.FC<{ name: string; url?: string; size?: number }> = ({
   name, url, size = 34,
@@ -66,11 +78,14 @@ const ComposeBox: React.FC<{
   const [text, setText]             = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState<string | null>(null);
+  const submitLockRef               = useRef(false);
 
   // Handles submit
   const handleSubmit = async () => {
+    if (submitLockRef.current) return;
     const trimmed = text.trim();
     if (!trimmed) return;
+    submitLockRef.current = true;
     setSubmitting(true);
     setError(null);
     try {
@@ -79,6 +94,7 @@ const ComposeBox: React.FC<{
     } catch (error: unknown) {
       setError(getErrorMessage(error, "Failed to post."));
     } finally {
+      submitLockRef.current = false;
       setSubmitting(false);
     }
   };
@@ -157,7 +173,9 @@ const CommentItem: React.FC<{
       setLoadingReplies(true);
       try {
         const page = await getCommentReplies(comment.id, skip, REPLY_PAGE);
-        setReplies((prev) => (skip === 0 ? page.replies : [...prev, ...page.replies]));
+        setReplies((prev) =>
+          skip === 0 ? mergeUniqueComments([], page.replies) : mergeUniqueComments(prev, page.replies)
+        );
         setTotalReplies(page.total);
         setReplySkip(skip + page.replies.length);
         setRepliesLoaded(true);
@@ -353,8 +371,8 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
       try {
         const fetcher = postType === "project" ? getProjectComments : getRecruitmentComments;
         const data    = await fetcher(postId, currentSkip, PAGE);
-        if (append) setComments((prev) => [...prev, ...data]);
-        else        setComments(data);
+        if (append) setComments((prev) => mergeUniqueComments(prev, data));
+        else        setComments(mergeUniqueComments([], data));
         setSkip(currentSkip + data.length);
         setTotal(data.length === PAGE ? currentSkip + data.length + 1 : currentSkip + data.length);
       } catch {
@@ -378,8 +396,12 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
       project_id:     postType === "project"     ? postId : null,
       recruitment_id: postType === "recruitment" ? postId : null,
     });
-    setComments((prev) => [...prev, newComment]);
-    setTotal((t) => t + 1);
+    const alreadyInList = comments.some((comment) => comment.id === newComment.id);
+    setComments((prev) => mergeUniqueComments(prev, [newComment]));
+    if (!alreadyInList) {
+      setTotal((t) => t + 1);
+      setSkip((s) => s + 1);
+    }
   };
 
   // Handles reply creation

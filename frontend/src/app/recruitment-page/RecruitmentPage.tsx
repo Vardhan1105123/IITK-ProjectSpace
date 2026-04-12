@@ -34,6 +34,7 @@ export interface Recruitment {
   description: string;
   description_format: "plain-text" | "markdown";
   domains: string[];
+  media_urls: string[];
   prerequisites: string[];
   allowed_designations: string[];
   allowed_departments: string[];
@@ -85,6 +86,7 @@ function mapToRecruitment(r: RecruitmentPublic): Recruitment {
     description: r.description,
     description_format: r.description_format,
     domains: r.domains,
+    media_urls: (r.media_urls ?? []).map((url) => getFullUrl(url) as string),
     prerequisites: r.prerequisites,
     allowed_designations: r.allowed_designations,
     allowed_departments: r.allowed_departments,
@@ -515,8 +517,17 @@ const RecruitmentPageContent: React.FC = () => {
               )}
 
               {/* Description */}
-              <div className="recruit-section-heading">Project and Recruitment Details</div>
+              <div className="recruit-section-heading">Details</div>
               <DescriptionBlock text={recruitment.description} format={recruitment.description_format} />
+
+              {/* Media */}
+              {recruitment.media_urls.length > 0 && (
+                <div className={`recruit-media-grid${recruitment.media_urls.length === 1 ? " single-media" : ""}`}>
+                  {recruitment.media_urls.map((url, i) => (
+                    <img key={i} src={url} alt={`Recruitment media ${i + 1}`} className="recruit-media-item" />
+                  ))}
+                </div>
+              )}
 
               {/* Prerequisites */}
               {recruitment.prerequisites.length > 0 && (

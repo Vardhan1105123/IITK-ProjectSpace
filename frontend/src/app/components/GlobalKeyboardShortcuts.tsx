@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const SEARCH_INPUT_SELECTOR = ".header__search-input";
+const SEARCH_FOCUS_ON_ARRIVAL_KEY = "focus-search-on-arrival";
 const FIELD_SELECTOR =
   'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled]), [contenteditable="true"]';
 
@@ -37,26 +38,33 @@ const pickVisibleField = (
   );
 };
 
-const focusPreferredInput = (pathname: string) => {
-  const prefersSearch = pathname === "/home-page" || pathname === "/search-page";
-  const preferredSearchInput = prefersSearch
-    ? document.querySelector<HTMLInputElement>(SEARCH_INPUT_SELECTOR)
-    : null;
+const isEditFormRoute = (pathname: string): boolean =>
+  pathname.includes("/edit-");
 
-  const target =
-    preferredSearchInput ??
-    pickVisibleField(`main ${FIELD_SELECTOR}`, false) ??
-    pickVisibleField(FIELD_SELECTOR, false);
-  if (!target) return;
+const focusPreferredInput = (pathname: string): boolean => {
+  const headerSearchInput = document.querySelector<HTMLInputElement>(SEARCH_INPUT_SELECTOR);
+  const preferredSearchInput =
+    headerSearchInput && isVisible(headerSearchInput) ? headerSearchInput : null;
+
+  const target = isEditFormRoute(pathname)
+    ? pickVisibleField(`main ${FIELD_SELECTOR}`, false) ??
+      pickVisibleField(FIELD_SELECTOR, false)
+    : preferredSearchInput ??
+      pickVisibleField(`main ${FIELD_SELECTOR}`, false) ??
+      pickVisibleField(FIELD_SELECTOR, false);
+  if (!target) return false;
 
   target.focus();
   if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
     target.select();
   }
+
+  return true;
 };
 
 const GlobalKeyboardShortcuts = () => {
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -64,20 +72,31 @@ const GlobalKeyboardShortcuts = () => {
 
       const key = event.key;
       const editable = isEditableElement(event.target);
+      const hasModifier = event.metaKey || event.ctrlKey || event.altKey;
+
+      if (key === "Escape" && !hasModifier) {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && active !== document.body) {
+          active.blur();
+        }
+        return;
+      }
 
       if (
         key === "/" &&
         !editable &&
-        !event.metaKey &&
-        !event.ctrlKey &&
-        !event.altKey
+        !hasModifier
       ) {
         event.preventDefault();
-        focusPreferredInput(pathname);
+        const focused = focusPreferredInput(pathname);
+        if (!focused && pathname === "/profile-page") {
+          sessionStorage.setItem(SEARCH_FOCUS_ON_ARRIVAL_KEY, "1");
+          router.push("/search-page");
+        }
         return;
       }
 
-      if (editable || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (editable || hasModifier) return;
 
       if (key === "ArrowDown") {
         event.preventDefault();
@@ -121,7 +140,7 @@ const GlobalKeyboardShortcuts = () => {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [pathname]);
+  }, [pathname, router]);
 
   return null;
 };

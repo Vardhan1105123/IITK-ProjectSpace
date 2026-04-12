@@ -201,7 +201,7 @@ def upload_profile_picture(
     # Save the physical file
     try:
         with open(file_path, "wb") as buffer:
-            shutils.copyfileobj(file.file, buffer)
+            shutil.copyfileobj(file.file, buffer)
     except Exception:
         # This will help debug permissions or disk space issues in the future.
         raise HTTPException(status_code=500, detail="Could not save file to disk.")

@@ -603,7 +603,7 @@ def upload_recruitment_media(
     safe_name = _safe_filename(file.filename)
     file_path = os.path.join(save_dir, safe_name)
     with open(file_path, "wb") as buffer:
-        shutils.copyfileobj(file.file, buffer)
+        shutil.copyfileobj(file.file, buffer)
 
     url_path = f"/recruitments/{recruitment_id}/media/{safe_name}"
 

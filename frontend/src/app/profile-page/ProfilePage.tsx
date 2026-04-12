@@ -51,17 +51,99 @@ const ProjectIcon = () => (
 );
 
 /* Helpers */
-type TabType = "recruitment" | "project";
+type TabType = "project" | "recruitment";
+type PageToken = number | "...";
+
+const PROFILE_PAGE_SIZE = 10;
 
 const getErrorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error && error.message ? error.message : fallback;
 
+const buildPageSequence = (current: number, total: number): PageToken[] => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+  const pages: PageToken[] = [];
+
+  const addRange = (from: number, to: number) => {
+    for (let i = from; i <= to; i++) pages.push(i);
+  };
+
+  pages.push(1);
+
+  if (current <= 4) {
+    addRange(2, 5);
+    pages.push("...");
+    pages.push(total);
+  } else if (current >= total - 3) {
+    pages.push("...");
+    addRange(total - 4, total);
+  } else {
+    pages.push("...");
+    addRange(current - 1, current + 1);
+    pages.push("...");
+    pages.push(total);
+  }
+
+  return pages;
+};
+
+const PaginationBar: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}> = ({ currentPage, totalPages, onPageChange }) => {
+  const sequence = buildPageSequence(currentPage, totalPages);
+
+  const goTo = (page: number) => {
+    if (page < 1 || page > totalPages || page === currentPage) return;
+    onPageChange(page);
+  };
+
+  return (
+    <div className="pagination">
+      <button
+        className="pagination__btn pagination__btn--arrow"
+        onClick={() => goTo(currentPage - 1)}
+        disabled={currentPage === 1}
+        aria-label="Previous page"
+      >
+        {"<"}
+      </button>
+
+      {sequence.map((item, i) =>
+        item === "..." ? (
+          <span key={`ellipsis-${i}`} className="pagination__ellipsis">...</span>
+        ) : (
+          <button
+            key={item}
+            className={`pagination__btn${item === currentPage ? " pagination__btn--active" : ""}`}
+            onClick={() => goTo(item as number)}
+          >
+            {item}
+          </button>
+        )
+      )}
+
+      <button
+        className="pagination__btn pagination__btn--arrow"
+        onClick={() => goTo(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        aria-label="Next page"
+      >
+        {">"}
+      </button>
+    </div>
+  );
+};
+
 /* Profile Page */
 const ProfilePageContent: React.FC = () => {
-  const [activeTab, setActiveTab]   = useState<TabType>("recruitment");
+  const [activeTab, setActiveTab]   = useState<TabType>("project");
   const [profile, setProfile]       = useState<UserProfile | UserProfileView | null>(null);
   const [projects, setProjects]     = useState<ProjectSummary[]>([]);
   const [recruitments, setRecruitments] = useState<RecruitmentSummary[]>([]);
+  const [projectsPage, setProjectsPage] = useState(1);
+  const [recruitmentsPage, setRecruitmentsPage] = useState(1);
 
   const [loading, setLoading]     = useState(true);
   const [cardsLoading, setCardsLoading] = useState(false);
@@ -141,6 +223,26 @@ const isOwnProfile = !userId || userId === myId
 
     loadData();
   }, [activeTab, userId, projectsInitialized, recruitmentsInitialized, router]);
+
+  const projectsTotalPages = Math.max(1, Math.ceil(projects.length / PROFILE_PAGE_SIZE));
+  const recruitmentsTotalPages = Math.max(1, Math.ceil(recruitments.length / PROFILE_PAGE_SIZE));
+
+  useEffect(() => {
+    setProjectsPage((page) => Math.min(page, projectsTotalPages));
+  }, [projectsTotalPages]);
+
+  useEffect(() => {
+    setRecruitmentsPage((page) => Math.min(page, recruitmentsTotalPages));
+  }, [recruitmentsTotalPages]);
+
+  const visibleProjects = projects.slice(
+    (projectsPage - 1) * PROFILE_PAGE_SIZE,
+    projectsPage * PROFILE_PAGE_SIZE
+  );
+  const visibleRecruitments = recruitments.slice(
+    (recruitmentsPage - 1) * PROFILE_PAGE_SIZE,
+    recruitmentsPage * PROFILE_PAGE_SIZE
+  );
 
   if (loading) {
     return (
@@ -249,19 +351,19 @@ const isOwnProfile = !userId || userId === myId
             <div className="tabs" role="tablist" aria-label="Content sections">
               <button
                 role="tab"
-                aria-selected={activeTab === "recruitment"}
-                className={`tabs__btn${activeTab === "recruitment" ? " tabs__btn--active" : ""}`}
-                onClick={() => setActiveTab("recruitment")}
-              >
-                <RecruitIcon /> Recruitments
-              </button>
-              <button
-                role="tab"
                 aria-selected={activeTab === "project"}
                 className={`tabs__btn${activeTab === "project" ? " tabs__btn--active" : ""}`}
                 onClick={() => setActiveTab("project")}
               >
                 <ProjectIcon /> Projects
+              </button>
+              <button
+                role="tab"
+                aria-selected={activeTab === "recruitment"}
+                className={`tabs__btn${activeTab === "recruitment" ? " tabs__btn--active" : ""}`}
+                onClick={() => setActiveTab("recruitment")}
+              >
+                <RecruitIcon /> Recruitments
               </button>
             </div>
 
@@ -282,7 +384,7 @@ const isOwnProfile = !userId || userId === myId
               {!cardsLoading && !cardsError && activeTab === "recruitment" && recruitmentsInitialized && (
                 recruitments.length === 0
                   ? <p style={{ color: "#888", gridColumn: "1 / -1" }}>No recruitment posts yet.</p>
-                  : recruitments.map((r) => (
+                  : visibleRecruitments.map((r) => (
                       <RecruitmentCard
                         key={r.id}
                         id={r.id}
@@ -298,7 +400,7 @@ const isOwnProfile = !userId || userId === myId
               {!cardsLoading && !cardsError && activeTab === "project" && projectsInitialized && (
                 projects.length === 0
                   ? <p style={{ color: "#888", gridColumn: "1 / -1" }}>No project posts yet.</p>
-                  : projects.map((p) => (
+                  : visibleProjects.map((p) => (
                       <ProjectCard
                         key={p.id}
                         id={p.id}
@@ -311,6 +413,22 @@ const isOwnProfile = !userId || userId === myId
               )}
 
             </div>
+
+            {!cardsLoading && !cardsError && activeTab === "project" && projectsInitialized && projects.length > 0 && (
+              <PaginationBar
+                currentPage={projectsPage}
+                totalPages={projectsTotalPages}
+                onPageChange={setProjectsPage}
+              />
+            )}
+
+            {!cardsLoading && !cardsError && activeTab === "recruitment" && recruitmentsInitialized && recruitments.length > 0 && (
+              <PaginationBar
+                currentPage={recruitmentsPage}
+                totalPages={recruitmentsTotalPages}
+                onPageChange={setRecruitmentsPage}
+              />
+            )}
           </main>
         </div>
       </div>

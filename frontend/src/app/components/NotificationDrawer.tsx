@@ -549,7 +549,13 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
             </div>
 
             {selectedInviteHandledState && (
-              <p className="notif-detail__action-state notif-detail__action-state--success">
+              <p
+                className={`notif-detail__action-state ${
+                  selectedInviteHandledState === "rejected"
+                    ? "notif-detail__action-state--danger"
+                    : "notif-detail__action-state--success"
+                }`}
+              >
                 {selectedInviteHandledState === "accepted" && "Invitation accepted."}
                 {selectedInviteHandledState === "rejected" && "Invitation rejected."}
                 {selectedInviteHandledState === "resolved" && "Invitation already handled."}
@@ -597,9 +603,6 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
               ) : null}
               <button className="notif-detail__btn" onClick={onOpenTarget}>
                 Open Page
-              </button>
-              <button className="notif-detail__btn" onClick={closeDetail}>
-                Close Card
               </button>
             </div>
           </>
