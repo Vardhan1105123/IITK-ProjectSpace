@@ -1,21 +1,43 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    UploadFile,
+    File,
+    Query,
+    BackgroundTasks,
+)
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from typing import List
+from datetime import timedelta
 import uuid
 import pathlib
 import os
 import shutil
+import secrets
 
+from core.utils import now
+from crud.user import update_user, get_user_by_id
 from core.database import get_session
 from core.dependencies import get_current_user
+from core.email import send_otp_email
+
 from models.user import User
+from models.otp import OTPVerification
 from models.project import Project, ProjectTeamLink
 from models.recruitments import Recruitment, RecruitmentRecruiterLink
-from schemas.user import UserPublic, UserUpdate, UserProfileView
+
+from schemas.user import (
+    UserPublic,
+    UserUpdate,
+    UserProfileView,
+    SecondaryEmailRequest,
+    SecondaryEmailVerify,
+)
 from schemas.project import ProjectSummary
 from schemas.recruitments import RecruitmentSummary
-from crud.user import update_user, get_user_by_id
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -55,6 +77,97 @@ def edit_my_profile(
     )
     session.commit()
     return updated_user
+
+
+@router.post("/me/request-secondary-email-otp", status_code=status.HTTP_200_OK)
+def request_secondary_email_otp(
+    request_data: SecondaryEmailRequest,
+    background_tasks: BackgroundTasks,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Sends an OTP to the requested secondary email."""
+
+    # Check if this email is already used by ANY user as primary or secondary
+    statement = select(User).where(
+        (User.iitk_email == request_data.secondary_email)
+        | (User.secondary_email == request_data.secondary_email)
+    )
+    if session.exec(statement).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This email is already registered to an account.",
+        )
+
+    # Clean up old OTPs for this email/purpose
+    existing_otp = session.exec(
+        select(OTPVerification)
+        .where(OTPVerification.email == request_data.secondary_email)
+        .where(OTPVerification.purpose == "secondary_email")
+    ).first()
+
+    if existing_otp:
+        session.delete(existing_otp)
+        session.commit()
+
+    # Generate new OTP
+    otp_code = "".join([str(secrets.randbelow(10)) for _ in range(6)])
+    new_otp = OTPVerification(
+        email=request_data.secondary_email,
+        full_name=current_user.fullname,
+        otp_code=otp_code,
+        purpose="secondary_email",
+        expires_at=now() + timedelta(minutes=10),
+    )
+    session.add(new_otp)
+    session.commit()
+
+    # Queue Email
+    background_tasks.add_task(
+        send_otp_email,
+        email_to=request_data.secondary_email,
+        otp_code=otp_code,
+        name=current_user.fullname,
+        purpose="secondary_email",
+    )
+    return {"message": "Verification code sent to secondary email."}
+
+
+@router.post("/me/verify-secondary-email", response_model=UserPublic)
+def verify_secondary_email(
+    verify_data: SecondaryEmailVerify,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Verifies the OTP and links the secondary email to the profile."""
+
+    otp_record = session.exec(
+        select(OTPVerification)
+        .where(OTPVerification.email == verify_data.secondary_email)
+        .where(OTPVerification.purpose == "secondary_email")
+    ).first()
+
+    if not otp_record or otp_record.otp_code != verify_data.otp_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code."
+        )
+
+    if otp_record.expires_at < now():
+        session.delete(otp_record)
+        session.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification code has expired.",
+        )
+
+    # OTP is valid! Update the user's profile
+    current_user.secondary_email = verify_data.secondary_email
+    session.add(current_user)
+    session.delete(otp_record)
+    session.commit()
+    session.refresh(current_user)
+
+    return current_user
 
 
 @router.post("/me/profile-picture", response_model=UserPublic)

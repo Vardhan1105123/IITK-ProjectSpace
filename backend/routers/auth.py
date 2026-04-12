@@ -1,5 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from sqlmodel import Session, select
+from sqlmodel import Session, select, or_
 from datetime import datetime, timedelta
 from core.utils import now
 import secrets
@@ -169,8 +169,14 @@ def login_user(user_credentials: UserLogin, db: Session = Depends(get_session)):
     if "@" not in identifier:
         identifier = f"{identifier}@iitk.ac.in"
 
-    ## Find if user exists
-    db_user = get_user_by_email(session=db, email=identifier)
+    statement = select(User).where(
+        or_(
+            User.iitk_email == identifier,
+            User.secondary_email == identifier
+        )
+    )
+
+    db_user = db.exec(statement).first()
 
     if not db_user or not verify_password(
         user_credentials.password, db_user.hashed_password

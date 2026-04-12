@@ -10,6 +10,7 @@ import {
   updateMyProfile,
   uploadMyProfilePicture,
   removeMyProfilePicture,
+  requestSecondaryEmailOtp,
   verifySecondaryEmailOtp,
   UserProfile,
 } from "@/lib/profileApi";
@@ -195,7 +196,18 @@ const EditProfilePage: React.FC = () => {
     setSaveError(null);
     setSecondaryEmailStatus("sending_otp");
     try {
-      // request OTP endpoint call should happen here before opening modal.
+      setSaveError(null);
+      setSecondaryEmailStatus("sending_otp");
+      try {
+        await requestSecondaryEmailOtp(nextSecondaryEmail);
+
+        setSecondaryEmailStatus("awaiting_otp");
+        setPendingSecondaryEmail(nextSecondaryEmail);
+        setShowSecondaryOtpModal(true);
+      } catch (error: unknown) {
+        setSaveError(getErrorMessage(error, "Secondary email verification failed. Please try again."));
+        setSecondaryEmailStatus("idle");
+      }
 
       setSecondaryEmailStatus("awaiting_otp");
       setPendingSecondaryEmail(nextSecondaryEmail);

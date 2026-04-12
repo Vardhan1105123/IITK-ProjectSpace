@@ -49,6 +49,18 @@ class UserBase(BaseModel):
         return v
 
 
+# Secondary Email
+
+
+class SecondaryEmailRequest(BaseModel):
+    secondary_email: EmailStr
+
+
+class SecondaryEmailVerify(BaseModel):
+    secondary_email: EmailStr
+    otp_code: str
+
+
 # OTP Verification
 class OTPVerify(BaseModel):
     iitk_email: EmailStr

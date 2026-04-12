@@ -153,11 +153,23 @@ export async function removeMyProfilePicture(): Promise<void> {
   if (!res.ok) throw new Error(extractError(data, "Failed to remove profile picture"));
 }
 
+export async function requestSecondaryEmailOtp(email: string): Promise<void> {
+  const res = await fetch(`${API}/users/me/request-secondary-email-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ secondary_email: email }),
+  });
+
+  if (res.status === 401) throw new Error("Unauthorized");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(extractError(data, "Failed to send verification code"));
+}
+
 export async function verifySecondaryEmailOtp(params: {
   email: string;
   otp: string;
 }): Promise<UserProfile> {
-  const res = await fetch(`${API}/users/me/secondary-email/verify-otp`, {
+  const res = await fetch(`${API}/users/me/verify-secondary-email`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({
