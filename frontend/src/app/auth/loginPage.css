@@ -15,7 +15,7 @@
 .bg-image {
   position: absolute;
   inset: 0;  
-  background: url("/iitkbg-image.jpg") center/cover no-repeat;
+  background: url("/iitkbg-image.jpeg") center/cover no-repeat;
 }
 
 /* Dark gradient overlay on background */
