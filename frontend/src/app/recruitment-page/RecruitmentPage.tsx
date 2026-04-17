@@ -523,9 +523,46 @@ const RecruitmentPageContent: React.FC = () => {
               {/* Media */}
               {recruitment.media_urls.length > 0 && (
                 <div className={`recruit-media-grid${recruitment.media_urls.length === 1 ? " single-media" : ""}`}>
-                  {recruitment.media_urls.map((url, i) => (
-                    <img key={i} src={url} alt={`Recruitment media ${i + 1}`} className="recruit-media-item" />
-                  ))}
+                  {recruitment.media_urls.map((url, i) => {
+                    const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(url);
+                    const isPdf = /\.pdf$/i.test(url);
+                    
+                    if (isVideo) {
+                      return (
+                        <video 
+                          key={i} 
+                          src={url} 
+                          controls 
+                          className="recruit-media-item"
+                          style={{ backgroundColor: "#000" }}
+                        >
+                          Your browser does not support the video tag.
+                        </video>
+                      );
+                    } 
+                    
+                    if (isPdf) {
+                      return (
+                        <iframe
+                          key={i}
+                          src={`${url}#toolbar=0`}
+                          className="recruit-media-item"
+                          title={`Recruitment document ${i + 1}`}
+                          style={{ minHeight: "400px", backgroundColor: "#fff" }}
+                        />
+                      );
+                    }
+
+                    // Fallback for everything else (Images)
+                    return (
+                      <img 
+                        key={i} 
+                        src={url} 
+                        alt={`Recruitment media ${i + 1}`} 
+                        className="recruit-media-item" 
+                      />
+                    );
+                  })}
                 </div>
               )}
 
